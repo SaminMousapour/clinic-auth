@@ -18,7 +18,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-clinic-auth-mo
 # DEBUG defaults to True for local dev (no DATABASE_URL), False for production (has DATABASE_URL)
 DEBUG = env_bool('DJANGO_DEBUG', not bool(os.environ.get('DATABASE_URL')))
 
-ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',') if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',') if h.strip()] + ['healthcheck.railway.app']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
