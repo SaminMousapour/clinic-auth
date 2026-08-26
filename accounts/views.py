@@ -6,7 +6,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 from django.urls import reverse
 from datetime import date, timedelta
-from .models import User, Doctor, Patient, Appointment, Medication, HealthReading, INSURANCE_CHOICES, PatientVisit, MedicalRecord, Prescription
+from .models import User, Doctor, Patient, Appointment, Medication, HealthReading, INSURANCE_CHOICES, PatientVisit, MedicalRecord, Prescription, PatientRecord
 import logging
 import json
 
@@ -1349,4 +1349,56 @@ def doctor_patient_visit(request, appointment_id):
         'readings_chart': readings_chart,
         'records': records,
         'prescriptions': prescriptions,
+        'patient_records': PatientRecord.objects.filter(patient=patient).order_by('-created_at'),
     })
+
+
+@login_required
+def patient_records(request):
+    if request.user.role != 'patient':
+        return redirect('home')
+    try:
+        patient = request.user.patient_profile
+    except Patient.DoesNotExist:
+        return redirect('home')
+    records = PatientRecord.objects.filter(patient=patient).order_by('-created_at')
+    return render(request, 'patient_records.html', {'patient': patient, 'records': records})
+
+
+@login_required
+def patient_record_add(request):
+    if request.user.role != 'patient':
+        return redirect('home')
+    try:
+        patient = request.user.patient_profile
+    except Patient.DoesNotExist:
+        return redirect('home')
+
+    appointments = Appointment.objects.filter(patient=patient, is_cancelled=False).order_by('-year', '-month', '-day')
+
+    if request.method == 'POST':
+        symptoms = request.POST.get('symptoms', '').strip()
+        notes = request.POST.get('notes', '').strip()
+        appointment_id = request.POST.get('appointment_id', '')
+
+        if not symptoms:
+            messages.error(request, 'Please describe your symptoms.')
+            return render(request, 'patient_record_add.html', {'patient': patient, 'appointments': appointments})
+
+        appointment = None
+        if appointment_id:
+            try:
+                appointment = Appointment.objects.get(id=appointment_id, patient=patient)
+            except Appointment.DoesNotExist:
+                pass
+
+        PatientRecord.objects.create(
+            patient=patient,
+            appointment=appointment,
+            symptoms=symptoms,
+            notes=notes,
+        )
+        messages.success(request, 'Medical record added successfully.')
+        return redirect('patient_records')
+
+    return render(request, 'patient_record_add.html', {'patient': patient, 'appointments': appointments})

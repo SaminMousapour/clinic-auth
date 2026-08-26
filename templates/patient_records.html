@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}My Medical Records{% endblock %}
+{% block content %}
+<div class="page-container">
+    <h2>My Medical Records</h2>
+    <p class="subtitle">View and manage your health records. Doctors can see these during your appointments.</p>
+
+    <a href="{% url 'patient_record_add' %}" class="btn btn-primary btn-lg" style="margin-bottom: 24px;">+ Add New Record</a>
+
+    {% if records %}
+    <div class="records-list">
+        {% for record in records %}
+        <div class="record-card">
+            <div class="record-header">
+                <span class="record-date">{{ record.date_added }}</span>
+                {% if record.appointment %}
+                <span class="record-badge">Linked to appointment</span>
+                {% endif %}
+            </div>
+            <div class="record-body">
+                <h4>Symptoms</h4>
+                <p>{{ record.symptoms|linebreaksbr }}</p>
+                {% if record.notes %}
+                <h4>Notes</h4>
+                <p>{{ record.notes|linebreaksbr }}</p>
+                {% endif %}
+            </div>
+            {% if record.appointment %}
+            <div class="record-footer">
+                <small>Appointment: Dr. {{ record.appointment.doctor.name }} - {{ record.appointment.year }}/{{ record.appointment.month }}/{{ record.appointment.day }}</small>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No medical records yet.</p>
+        <p>Add your first record so your doctor can review it during your next visit.</p>
+    </div>
+    {% endif %}
+
+    <div class="back-link" style="margin-top: 24px;">
+        <a href="{% url 'patient_dashboard' %}">Back to Dashboard</a>
+    </div>
+</div>
+
+<style>
+.records-list { display: flex; flex-direction: column; gap: 16px; }
+.record-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
+.record-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.record-date { font-weight: 600; color: #1e40af; font-size: 14px; }
+.record-badge { background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+.record-body h4 { margin: 8px 0 4px; color: #374151; font-size: 14px; }
+.record-body p { color: #4b5563; margin: 0 0 8px; line-height: 1.5; }
+.record-footer { margin-top: 8px; padding-top: 8px; border-top: 1px solid #f1f5f9; }
+.record-footer small { color: #6b7280; }
+.empty-state { text-align: center; padding: 40px; color: #6b7280; }
+</style>
+{% endblock %}
