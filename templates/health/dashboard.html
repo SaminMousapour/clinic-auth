@@ -16,6 +16,7 @@
     <p class="subtitle">Your health readings history</p>
 
     {% if readings %}
+    <div class="table-scroll">
     <table class="admin-table">
         <thead>
             <tr>
@@ -48,6 +49,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <p class="empty-state">No health readings recorded yet.</p>
     {% endif %}

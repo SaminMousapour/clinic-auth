@@ -39,4 +39,7 @@ def decrypt_data(data):
     if data is None:
         return None
     f = get_fernet()
-    return f.decrypt(data.encode()).decode()
+    try:
+        return f.decrypt(data.encode()).decode()
+    except Exception:
+        return '[decryption error]'

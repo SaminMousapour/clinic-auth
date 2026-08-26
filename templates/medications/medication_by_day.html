@@ -31,10 +31,10 @@
         {% if medications %}
         <div class="med-list">
             {% for med in medications %}
-            <div class="med-card {% if med.taken %}med-taken{% endif %}">
+            <div class="med-card {% if med.is_taken %}med-taken{% endif %}">
                 <div class="med-info">
                     <div class="med-name">
-                        {% if med.taken %}
+                        {% if med.is_taken %}
                         <span class="check-icon">&#10004;</span>
                         {% else %}
                         <span class="unchecked-icon">&#9744;</span>
@@ -42,12 +42,11 @@
                         {{ med.name }}
                     </div>
                     <div class="med-detail"><span class="label">Dosage:</span> {{ med.dosage }}</div>
-                    <div class="med-detail"><span class="label">Time:</span> {{ med.time }}</div>
-                    <div class="med-detail"><span class="label">Times per day:</span> {{ med.times_per_day }}</div>
+                    <div class="med-detail"><span class="label">Time:</span> {{ med.get_times_display }}</div>
                 </div>
                 <div class="med-actions">
-                    <a href="{% url 'medication_toggle_taken' med.id %}" class="btn btn-sm {% if med.taken %}btn-secondary{% else %}btn-success{% endif %}">
-                        {% if med.taken %}Undo{% else %}Take{% endif %}
+                    <a href="{{ med.toggle_url }}" class="btn btn-sm {% if med.is_taken %}btn-secondary{% else %}btn-success{% endif %}">
+                        {% if med.is_taken %}Undo{% else %}Take{% endif %}
                     </a>
                 </div>
             </div>

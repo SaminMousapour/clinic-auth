@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <nav class="dash-nav">
+        <div class="dash-nav-inner">
+            <a href="/" class="nav-logo">
+                <svg width="32" height="32" viewBox="0 0 100 100">
+                    <rect x="10" y="10" width="80" height="80" rx="15" fill="#1e3a8a" opacity="0.15"/>
+                    <rect x="42" y="20" width="16" height="50" rx="3" fill="#1e3a8a"/>
+                    <rect x="25" y="42" width="50" height="16" rx="3" fill="#1e3a8a"/>
+                </svg>
+                <span>ClinicOS</span>
+            </a>
+            <div class="dash-nav-right">
+                {% if reminder_count > 0 %}
+                <button class="notif-bell" id="notifBell" onclick="scrollToReminders()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    <span class="notif-badge">{{ reminder_count }}</span>
+                </button>
+                {% endif %}
+                <span class="dash-user">{{ user.patient_profile.first_name }}</span>
+                <a href="{% url 'logout' %}" class="btn btn-sm btn-ghost">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="dash-main">
+        <div class="dash-welcome">
+            <div class="dash-welcome-text">
+                <span class="dash-greeting" id="greeting">Good morning</span>
+                <h1>{{ user.patient_profile.first_name }} {{ user.patient_profile.last_name }}</h1>
+                <p>What would you like to do today?</p>
+            </div>
+            <div class="dash-welcome-art">
+                <svg width="140" height="140" viewBox="0 0 140 140" fill="none">
+                    <circle cx="70" cy="70" r="60" fill="white" opacity="0.15"/>
+                    <circle cx="70" cy="70" r="42" fill="white" opacity="0.15"/>
+                    <path d="M70 35v30l20 15" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="70" cy="70" r="3" fill="white"/>
+                </svg>
+            </div>
+        </div>
+
+        {% if reminders %}
+        <div class="reminders-section" id="reminders">
+            <div class="reminders-header">
+                <div class="reminders-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    Reminders
+                </div>
+                <span class="reminders-count">{{ reminders|length }}</span>
+            </div>
+            <div class="reminders-list">
+                {% for r in reminders %}
+                <div class="reminder-item reminder-{{ r.type }}">
+                    <div class="reminder-icon">
+                        {% if r.type == 'medication' %}
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.5 1.5H8A2.5 2.5 0 0 0 5.5 4v16a2.5 2.5 0 0 0 2.5 2.5h8a2.5 2.5 0 0 0 2.5-2.5V4A2.5 2.5 0 0 0 16 1.5h-2.5"/><path d="M12 7v6"/><path d="M9.5 10h5"/></svg>
+                        {% else %}
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        {% endif %}
+                    </div>
+                    <div class="reminder-text">{{ r.message }}</div>
+                    {% if r.type == 'medication' %}
+                    <a href="{% url 'medication_by_day' %}" class="reminder-action btn btn-sm btn-primary">Take Now</a>
+                    {% else %}
+                    <a href="{% url 'patient_appointments' %}" class="reminder-action btn btn-sm btn-primary">View</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="module-grid">
+            <a href="{% url 'appointment_book' %}" class="module-card module-appointments">
+                <div class="module-card-top">
+                    <div class="module-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/>
+                            <path d="M16 2v4M8 2v4M3 10h18"/>
+                            <circle cx="12" cy="16" r="2"/>
+                        </svg>
+                    </div>
+                    <svg class="module-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+                <h3>Book Appointment</h3>
+                <p>Schedule a visit with your doctor</p>
+                <div class="module-tag">Quick & Easy</div>
+            </a>
+
+            <a href="{% url 'patient_appointments' %}" class="module-card module-my-appointments">
+                <div class="module-card-top">
+                    <div class="module-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                            <rect x="9" y="3" width="6" height="4" rx="1"/>
+                            <path d="M9 14l2 2 4-4"/>
+                        </svg>
+                    </div>
+                    <svg class="module-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+                <h3>My Appointments</h3>
+                <p>View and manage upcoming visits</p>
+                <div class="module-tag">Stay Organized</div>
+            </a>
+
+            <a href="{% url 'medication_list' %}" class="module-card module-medications">
+                <div class="module-card-top">
+                    <div class="module-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M10.5 1.5H8A2.5 2.5 0 0 0 5.5 4v16a2.5 2.5 0 0 0 2.5 2.5h8a2.5 2.5 0 0 0 2.5-2.5V4A2.5 2.5 0 0 0 16 1.5h-2.5"/>
+                            <path d="M12 7v6"/>
+                            <path d="M9.5 10h5"/>
+                        </svg>
+                    </div>
+                    <svg class="module-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+                <h3>Medications</h3>
+                <p>Track your daily medication intake</p>
+                <div class="module-tag">Never Miss a Dose</div>
+            </a>
+
+            <a href="{% url 'health_dashboard' %}" class="module-card module-health">
+                <div class="module-card-top">
+                    <div class="module-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                    </div>
+                    <svg class="module-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+                <h3>Health Monitoring</h3>
+                <p>Track blood pressure, sugar & heart rate</p>
+                <div class="module-tag">Stay on Track</div>
+            </a>
+        </div>
+
+        <div class="dash-footer">
+            <a href="{% url 'logout' %}" class="btn btn-ghost dash-logout">Sign Out</a>
+        </div>
+    </main>
+</div>
+
+<div class="notif-toast" id="notifToast">
+    <div class="notif-toast-content">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="notifToastMsg"></span>
+    </div>
+    <button class="notif-toast-close" onclick="document.getElementById('notifToast').classList.remove('show')">&times;</button>
+</div>
+
+<script>
+(function() {
+    var h = new Date().getHours();
+    var el = document.getElementById('greeting');
+    if (h < 12) el.textContent = 'Good morning';
+    else if (h < 17) el.textContent = 'Good afternoon';
+    else el.textContent = 'Good evening';
+
+    var reminders = {{ reminders_json|safe }};
+    var askedKey = 'clinicOS_notif_asked';
+    if (!sessionStorage.getItem(askedKey) && 'Notification' in window && Notification.permission === 'default') {
+        setTimeout(function() {
+            if (confirm('Would you like to be notified about medication times and upcoming appointments?')) {
+                Notification.requestPermission().then(function(perm) {
+                    if (perm === 'granted') {
+                        showToast('Notifications enabled! You\'ll be reminded about meds and appointments.');
+                    }
+                });
+            }
+            sessionStorage.setItem(askedKey, '1');
+        }, 1500);
+    }
+
+    if (reminders.length > 0 && 'Notification' in window && Notification.permission === 'granted') {
+        var meds = reminders.filter(function(r) { return r.type === 'medication'; });
+        var appts = reminders.filter(function(r) { return r.type === 'appointment'; });
+        if (meds.length > 0) {
+            new Notification('Medication Reminder', { body: 'You have ' + meds.length + ' medication' + (meds.length > 1 ? 's' : '') + ' to take today.' });
+        }
+        if (appts.length > 0) {
+            new Notification('Upcoming Appointment', { body: 'You have ' + appts.length + ' appointment' + (appts.length > 1 ? 's' : '') + ' tomorrow.' });
+        }
+    }
+})();
+
+function scrollToReminders() {
+    var el = document.getElementById('reminders');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function showToast(msg) {
+    var toast = document.getElementById('notifToast');
+    document.getElementById('notifToastMsg').textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 5000);
+}
+</script>
+{% endblock %}

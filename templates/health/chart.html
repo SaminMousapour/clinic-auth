@@ -41,42 +41,53 @@ const bpReadings = readings.filter(r => r.type === 'blood_pressure');
 const sugarReadings = readings.filter(r => r.type === 'blood_sugar');
 const hrReadings = readings.filter(r => r.type === 'heart_rate');
 
+function mapToLabels(filtered, getVal) {
+    return labels.map(l => {
+        const match = filtered.find(r => r.date === l);
+        return match ? getVal(match) : null;
+    });
+}
+
 const datasets = [];
 
 if (bpReadings.length > 0) {
     datasets.push({
         label: 'Systolic BP',
-        data: bpReadings.map(r => r.systolic),
+        data: mapToLabels(bpReadings, r => r.systolic),
         borderColor: '#e53e3e',
         backgroundColor: 'rgba(229, 62, 62, 0.1)',
-        tension: 0.1
+        tension: 0.1,
+        spanGaps: true
     });
     datasets.push({
         label: 'Diastolic BP',
-        data: bpReadings.map(r => r.diastolic),
+        data: mapToLabels(bpReadings, r => r.diastolic),
         borderColor: '#3182ce',
         backgroundColor: 'rgba(49, 130, 206, 0.1)',
-        tension: 0.1
+        tension: 0.1,
+        spanGaps: true
     });
 }
 
 if (sugarReadings.length > 0) {
     datasets.push({
         label: 'Blood Sugar',
-        data: sugarReadings.map(r => r.value),
+        data: mapToLabels(sugarReadings, r => r.value),
         borderColor: '#d69e2e',
         backgroundColor: 'rgba(214, 158, 46, 0.1)',
-        tension: 0.1
+        tension: 0.1,
+        spanGaps: true
     });
 }
 
 if (hrReadings.length > 0) {
     datasets.push({
         label: 'Heart Rate',
-        data: hrReadings.map(r => r.value),
+        data: mapToLabels(hrReadings, r => r.value),
         borderColor: '#38a169',
         backgroundColor: 'rgba(56, 161, 105, 0.1)',
-        tension: 0.1
+        tension: 0.1,
+        spanGaps: true
     });
 }
 

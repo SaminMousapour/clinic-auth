@@ -1,43 +1,110 @@
 {% extends 'base.html' %}
 
-{% block title %}Doctor Appointments{% endblock %}
+{% block title %}Doctor Dashboard{% endblock %}
 
 {% block content %}
-<div class="page-container">
-    <h2>My Appointments</h2>
-    <p class="subtitle">Dr. {{ doctor.name }} - Medical No: {{ doctor.medical_number }}</p>
-
-    {% if appointments %}
-    <div class="appointment-list">
-        {% for appt in appointments %}
-        <div class="appointment-card">
-            <div class="appointment-info">
-                <div class="appointment-doctor">{{ appt.patient_name }}</div>
-                <div class="appointment-detail">
-                    <span class="label">Phone:</span> {{ appt.patient_phone }}
-                </div>
-                <div class="appointment-detail">
-                    <span class="label">Date:</span> {{ appt.year }}/{{ appt.month }}/{{ appt.day }}
-                </div>
-                <div class="appointment-detail">
-                    <span class="label">Time:</span> {{ appt.hour }}:00
-                </div>
-                <div class="appointment-detail">
-                    <span class="label">Reason:</span> {{ appt.reason }}
-                </div>
-                <div class="appointment-detail">
-                    <span class="label">Insurance:</span> {{ appt.patient.get_insurance_display_name }}
-                </div>
+<div class="dashboard-page">
+    <nav class="dash-nav">
+        <div class="dash-nav-inner">
+            <a href="/" class="nav-logo">
+                <svg width="32" height="32" viewBox="0 0 100 100">
+                    <rect x="10" y="10" width="80" height="80" rx="15" fill="#1e3a8a" opacity="0.15"/>
+                    <rect x="42" y="20" width="16" height="50" rx="3" fill="#1e3a8a"/>
+                    <rect x="25" y="42" width="50" height="16" rx="3" fill="#1e3a8a"/>
+                </svg>
+                <span>ClinicOS</span>
+            </a>
+            <div class="dash-nav-right">
+                <span class="dash-user">Dr. {{ doctor.name }}</span>
+                <a href="{% url 'logout' %}" class="btn btn-sm btn-ghost">Logout</a>
             </div>
         </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <p class="empty-state">No appointments scheduled.</p>
-    {% endif %}
+    </nav>
 
-    <div class="back-link">
-        <a href="{% url 'logout' %}">Logout</a>
-    </div>
+    <main class="dash-main">
+        <div class="dash-welcome doctor-welcome">
+            <div class="dash-welcome-text">
+                <span class="dash-greeting">Doctor Portal</span>
+                <h1>Dr. {{ doctor.name }}</h1>
+                <p>Medical No: {{ doctor.medical_number }} &middot; {{ total_count }} upcoming appointment{{ total_count|pluralize }}</p>
+            </div>
+            <div class="dash-welcome-art">
+                <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+                    <circle cx="60" cy="60" r="50" fill="white" opacity="0.12"/>
+                    <circle cx="60" cy="60" r="34" fill="white" opacity="0.1"/>
+                    <path d="M60 30v30M45 60h30" stroke="white" stroke-width="5" stroke-linecap="round"/>
+                </svg>
+            </div>
+        </div>
+
+        {% if grouped_days %}
+        <div class="doctor-schedule">
+            {% for day in grouped_days %}
+            <div class="doctor-day-block{% if day.is_past %} day-past{% elif day.is_today %} day-today{% else %} day-future{% endif %}">
+                <div class="doctor-day-header{% if not day.is_open %} day-collapsed{% endif %}" onclick="toggleDay(this)">
+                    <svg class="doctor-day-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                    <div class="doctor-day-name">{{ day.day_name }}{% if day.is_today %} <span class="doctor-day-today-tag">Today</span>{% endif %}{% if day.is_past %} <span class="doctor-day-past-tag">Past</span>{% endif %}{% if not day.is_today and not day.is_past %} <span class="doctor-day-future-tag">Upcoming</span>{% endif %}</div>
+                    <div class="doctor-day-date">{{ day.display }}</div>
+                    <div class="doctor-day-count">
+                        {{ day.appointments|length }} appointment{{ day.appointments|length|pluralize }}
+                        {% if day.done_count %}&middot; {{ day.done_count }} done{% endif %}
+                    </div>
+                </div>
+                <div class="doctor-appt-list{% if not day.is_open %} day-hidden{% endif %}">
+                    {% for appt in day.appointments %}
+                    <a href="{% url 'doctor_patient_visit' appt.id %}" class="doctor-appt-card doctor-appt-link{% if appt.is_completed %} appt-done{% endif %}">
+                        <div class="doctor-appt-time">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                            {{ appt.time }}
+                        </div>
+                        <div class="doctor-appt-info">
+                            <div class="doctor-appt-name-row">
+                                <span class="doctor-appt-name">{{ appt.patient_name }}</span>
+                                {% if appt.is_completed %}
+                                <span class="doctor-appt-done">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                                    Completed
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="doctor-appt-detail">
+                                <span class="doctor-appt-label">Phone:</span> {{ appt.patient_phone }}
+                            </div>
+                            <div class="doctor-appt-detail">
+                                <span class="doctor-appt-label">Insurance:</span> {{ appt.insurance }}
+                            </div>
+                            <div class="doctor-appt-detail">
+                                <span class="doctor-appt-label">Reason:</span> {{ appt.reason }}
+                            </div>
+                        </div>
+                        <div class="doctor-appt-arrow">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <script>
+            function toggleDay(header) {
+                var list = header.nextElementSibling;
+                list.classList.toggle('day-hidden');
+                header.classList.toggle('day-collapsed');
+            }
+        </script>
+        {% else %}
+        <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <p>No appointments scheduled yet.</p>
+        </div>
+        {% endif %}
+
+        <div class="dash-footer">
+            <a href="{% url 'doctor_insurance_settings' %}" class="btn btn-ghost dash-logout">Insurance Settings</a>
+            <a href="{% url 'logout' %}" class="btn btn-ghost dash-logout">Sign Out</a>
+        </div>
+    </main>
 </div>
 {% endblock %}

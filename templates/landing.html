@@ -1,0 +1,482 @@
+{% extends 'base.html' %}
+
+{% block title %}Clinic Management System{% endblock %}
+
+{% block content %}
+<div class="landing-page">
+
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">
+                <svg width="36" height="36" viewBox="0 0 100 100">
+                    <rect x="10" y="10" width="80" height="80" rx="15" fill="#1e40af" opacity="0.15"/>
+                    <rect x="42" y="20" width="16" height="50" rx="3" fill="#1e40af"/>
+                    <rect x="25" y="42" width="50" height="16" rx="3" fill="#1e40af"/>
+                </svg>
+                <span>ClinicOS</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="landing-main">
+
+        <section class="hero">
+            <div class="hero-bg">
+                <div class="hero-shape hero-shape-1"></div>
+                <div class="hero-shape hero-shape-2"></div>
+                <div class="hero-shape hero-shape-3"></div>
+                <div class="hero-shape hero-shape-4"></div>
+            </div>
+            <div class="hero-content">
+                <div class="hero-badge">Trusted by clinics nationwide</div>
+                <h1>Manage Your Clinic<br><span class="hero-highlight">Smarter, Faster, Better</span></h1>
+                <p class="hero-subtitle">From appointment booking to health tracking — one powerful platform to manage your healthcare journey.</p>
+                <div class="hero-actions">
+                    <a href="{% url 'register' %}" class="btn btn-primary btn-lg">Get Started Free</a>
+                    <a href="{% url 'login' %}" class="btn btn-ghost btn-lg">Sign In</a>
+                </div>
+                <div class="hero-trust">
+                    <div class="hero-trust-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                        Free for patients
+                    </div>
+                    <div class="hero-trust-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                        Encrypted & secure
+                    </div>
+                    <div class="hero-trust-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                        24/7 access
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-bar">
+            <div class="stats-bar-inner">
+                <div class="stats-bar-item">
+                    <span class="stats-bar-number">13</span>
+                    <span class="stats-bar-label">Insurance Providers</span>
+                </div>
+                <div class="stats-bar-divider"></div>
+                <div class="stats-bar-item">
+                    <span class="stats-bar-number">24/7</span>
+                    <span class="stats-bar-label">Availability</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="features-header">
+                <span class="section-tag">Features</span>
+                <h3>Everything You Need</h3>
+                <p>All the tools you need for modern clinic management</p>
+            </div>
+            <div class="bento-grid">
+                <div class="bento-card bento-wide bento-blue">
+                    <div class="bento-icon">📅</div>
+                    <div class="bento-text">
+                        <h4>Smart Scheduling</h4>
+                        <p>Book, view, and cancel appointments with real-time availability. Never miss a checkup again.</p>
+                    </div>
+                </div>
+                <div class="bento-card bento-tall bento-green">
+                    <div class="bento-icon">💊</div>
+                    <div class="bento-text">
+                        <h4>Medication Tracking</h4>
+                        <p>Daily reminders with per-day tracking and progress reports.</p>
+                    </div>
+                </div>
+                <div class="bento-card bento-accent bento-tall bento-purple">
+                    <div class="bento-icon">🔐</div>
+                    <div class="bento-text">
+                        <h4>End-to-End Encryption</h4>
+                        <p>Fernet encryption keeps your medical data safe and private.</p>
+                    </div>
+                </div>
+                <div class="bento-card bento-orange">
+                    <div class="bento-icon">🏥</div>
+                    <div class="bento-text">
+                        <h4>Insurance Support</h4>
+                        <p>13 providers with auto coverage display.</p>
+                    </div>
+                </div>
+                <div class="bento-card bento-teal">
+                    <div class="bento-icon">📊</div>
+                    <div class="bento-text">
+                        <h4>Health Monitoring</h4>
+                        <p>Blood pressure, sugar & heart rate with charts.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="conditions" class="conditions">
+            <div class="conditions-header">
+                <span class="section-tag">Clinical Care</span>
+                <h3>Conditions We Treat</h3>
+                <p>Expert care across medical specialties — from common illnesses to chronic conditions</p>
+            </div>
+            <div class="conditions-tabs" role="tablist" aria-label="Condition categories">
+                <button class="tab-btn active" role="tab" aria-selected="true" data-tab="common">Common</button>
+                <button class="tab-btn" role="tab" aria-selected="false" data-tab="chronic">Chronic</button>
+                <button class="tab-btn" role="tab" aria-selected="false" data-tab="mental">Mental Health</button>
+                <button class="tab-btn" role="tab" aria-selected="false" data-tab="respiratory">Respiratory</button>
+                <button class="tab-btn" role="tab" aria-selected="false" data-tab="digestive">Digestive</button>
+            </div>
+            <div class="conditions-grid" id="conditionsGrid">
+                <!-- Cards rendered by JS -->
+            </div>
+        </section>
+
+        <section id="how-it-works" class="how-it-works">
+            <div class="how-header">
+                <span class="section-tag">How It Works</span>
+                <h3>Up and Running in Minutes</h3>
+                <p>Three simple steps to start managing your clinic</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Create Your Account</h4>
+                        <p>Create your free account in seconds and get instant access to all features</p>
+                    </div>
+                </div>
+                <div class="step-connector">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Set Up Your Profile</h4>
+                        <p>Add your medical info, insurance details, and health metrics to personalize your experience</p>
+                    </div>
+                </div>
+                <div class="step-connector">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Start Managing Health</h4>
+                        <p>Book appointments, track medications, monitor vitals, and manage everything from one place</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="health-tips" class="health-tips-section">
+            <button class="health-tips-fab" id="healthTipsFab" aria-label="How to Stay Healthier" aria-expanded="false">
+                <svg class="fab-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                    <path d="M12 7v6M9 10h6"/>
+                </svg>
+                <span class="fab-label">Health Tips</span>
+            </button>
+
+            <div class="health-tips-modal" id="healthTipsModal" role="dialog" aria-modal="true" aria-labelledby="healthTipsTitle" hidden>
+                <div class="health-tips-backdrop" id="healthTipsBackdrop"></div>
+                <div class="health-tips-panel">
+                    <header class="health-tips-header">
+                        <h2 id="healthTipsTitle">How to Stay Healthier</h2>
+                        <button class="health-tips-close" id="healthTipsClose" aria-label="Close">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </header>
+                    <div class="health-tips-grid">
+                        <article class="health-tip-card green">
+                            <div class="health-tip-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                                    <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/>
+                                    <path d="M12 16v-4"/>
+                                </svg>
+                            </div>
+                            <h3>Healthy Eating</h3>
+                            <p class="health-tip-desc">Nourish your body with balanced, wholesome nutrition every day.</p>
+                            <ul class="health-tip-list">
+                                <li>Fresh fruits and vegetables</li>
+                                <li>Drink enough water (8 glasses a day)</li>
+                                <li>Reduce sugar and salt</li>
+                                <li>Eat protein and dairy</li>
+                            </ul>
+                        </article>
+                        <article class="health-tip-card blue">
+                            <div class="health-tip-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M3 11v-3a9 9 0 0118 0v3"/>
+                                    <path d="M5 11l7-7 7 7"/>
+                                    <path d="M12 19v-7"/>
+                                    <path d="M8 14h8" stroke-linecap="round" stroke-dasharray="4 2"/>
+                                </svg>
+                            </div>
+                            <h3>Daily Exercise</h3>
+                            <p class="health-tip-desc">Move your body regularly to strengthen heart, muscles, and mind.</p>
+                            <ul class="health-tip-list">
+                                <li>Daily walking (30 minutes)</li>
+                                <li>Stretching or yoga</li>
+                                <li>Aerobic exercise (at least 3 times a week)</li>
+                            </ul>
+                        </article>
+                        <article class="health-tip-card teal">
+                            <div class="health-tip-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                                    <path d="M22 4L12 14.01l-3-3"/>
+                                    <path d="M12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+                                    <path d="M12 6v6l4 2"/>
+                                </svg>
+                            </div>
+                            <h3>Good Habits</h3>
+                            <p class="health-tip-desc">Small daily choices build a foundation for lifelong wellness.</p>
+                            <ul class="health-tip-list">
+                                <li>Enough sleep (7–8 hours)</li>
+                                <li>Stress management (meditation or deep breathing)</li>
+                                <li>No smoking</li>
+                                <li>Regular annual check-ups</li>
+                            </ul>
+                        </article>
+                        <article class="health-tip-card emerald">
+                            <div class="health-tip-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                                    <path d="M12 9v6" stroke-linecap="round"/>
+                                    <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.15"/>
+                                </svg>
+                            </div>
+                            <h3>Healthy Foods</h3>
+                            <p class="health-tip-desc">Nature's superfoods to boost immunity and vitality naturally.</p>
+                            <ul class="health-tip-list">
+                                <li>Honey</li>
+                                <li>Garlic</li>
+                                <li>Ginger</li>
+                                <li>Probiotic yogurt</li>
+                                <li>Walnuts and almonds</li>
+                            </ul>
+                        </article>
+                    </div>
+                    <blockquote class="health-tip-quote">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1H1c0 .5 0 1 1 1h12v-1c0-1 0-2 1-2h1"/>
+                            <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3"/>
+                        </svg>
+                        <p>"Health is a choice, not a chance."</p>
+                    </blockquote>
+                </div>
+            </div>
+        </section>
+
+        <section id="our-doctors" class="our-doctors-section">
+            <button class="our-doctors-fab" id="ourDoctorsFab" aria-label="Our Doctors" aria-expanded="false">
+                <svg class="fab-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6 6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
+                    <path d="M8 15v1a6 6 0 0 0 6 6 6 6 0 0 0 6-6v-4"/>
+                    <circle cx="20" cy="10" r="2"/>
+                </svg>
+                <span class="fab-label">Our Doctors</span>
+            </button>
+
+            <div class="our-doctors-modal" id="ourDoctorsModal" role="dialog" aria-modal="true" aria-labelledby="ourDoctorsTitle" hidden>
+                <div class="our-doctors-backdrop" id="ourDoctorsBackdrop"></div>
+                <div class="our-doctors-panel">
+                    <header class="our-doctors-panel-header">
+                        <div class="our-doctors-panel-header-text">
+                            <h2 id="ourDoctorsTitle">Our Doctors</h2>
+                            <p class="doctors-subtitle">{{ doctors.count }} specialists ready to care for you</p>
+                        </div>
+                        <button class="our-doctors-close" id="ourDoctorsClose" aria-label="Close">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </header>
+                    <div class="our-doctors-grid">
+                        {% for doctor in doctors %}
+                        <article class="doctor-card {{ doctor.specialty|lower|slugify }}">
+                            <div class="doctor-avatar">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div class="doctor-info">
+                                <h3>Dr. {{ doctor.name }}</h3>
+                                <span class="doctor-specialty">{{ doctor.specialty }}</span>
+                                <p class="doctor-desc">{{ doctor.description }}</p>
+                            </div>
+                            <div class="doctor-meta">
+                                <span class="doctor-id">ID: {{ doctor.medical_number }}</span>
+                                <span class="doctor-badge">{{ doctor.get_accepted_insurance_display }}</span>
+                            </div>
+                        </article>
+                        {% empty %}
+                        <p class="no-doctors-message">No doctors available at the moment.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="landing-footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <a href="/" class="footer-logo">
+                    <svg width="28" height="28" viewBox="0 0 100 100">
+                        <rect x="10" y="10" width="80" height="80" rx="15" fill="#1e40af" opacity="0.15"/>
+                        <rect x="42" y="20" width="16" height="50" rx="3" fill="#1e40af"/>
+                        <rect x="25" y="42" width="50" height="16" rx="3" fill="#1e40af"/>
+                    </svg>
+                    <span>ClinicOS</span>
+                </a>
+                <p class="footer-desc">Modern clinic management for smarter healthcare.</p>
+            </div>
+            <div class="footer-links-group">
+                <div class="footer-col">
+                    <h5>Product</h5>
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="{% url 'register' %}">Register</a>
+                </div>
+                <div class="footer-col">
+                    <h5>Account</h5>
+                    <a href="{% url 'login' %}">Sign In</a>
+                    <a href="{% url 'register' %}">Register</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 ClinicOS. All rights reserved.</p>
+        </div>
+    </footer>
+
+</div>
+
+<script>
+const CONDITIONS = [
+    // Common
+    { id: 'cold-flu', name: 'Cold & Flu', desc: 'Seasonal viruses and respiratory infections', category: 'common', icon: '🤧', color: 'blue' },
+    { id: 'headache', name: 'Headache & Migraine', desc: 'Acute and chronic head pain management', category: 'common', icon: '🧠', color: 'indigo' },
+    { id: 'rashes', name: 'Skin Rashes & Allergies', desc: 'Dermatology and allergic reactions', category: 'common', icon: '🔴', color: 'cyan' },
+    { id: 'stomach', name: 'Stomachache & Acid Reflux', desc: 'Digestive health and GERD treatment', category: 'digestive', icon: '🥛', color: 'lime' },
+    { id: 'checkup', name: 'General Check-up', desc: 'Routine wellness exams and prevention', category: 'common', icon: '✅', color: 'fuchsia' },
+
+    // Chronic
+    { id: 'bp', name: 'High Blood Pressure', desc: 'Hypertension monitoring and management', category: 'chronic', icon: '❤️', color: 'rose' },
+    { id: 'diabetes', name: 'Diabetes (Type 2)', desc: 'Blood sugar control and lifestyle guidance', category: 'chronic', icon: '🩸', color: 'emerald' },
+    { id: 'joint', name: 'Back & Joint Pain', desc: 'Musculoskeletal pain and mobility issues', category: 'chronic', icon: '🦴', color: 'amber' },
+
+    // Mental Health
+    { id: 'anxiety', name: 'Anxiety & Depression', desc: 'Mental health support and counseling', category: 'mental', icon: '🌿', color: 'violet' },
+
+    // Respiratory
+    { id: 'asthma', name: 'Asthma & Breathing', desc: 'Respiratory care and inhaler management', category: 'respiratory', icon: '🫁', color: 'sky' },
+];
+
+function renderConditions(filter = 'common') {
+    const grid = document.getElementById('conditionsGrid');
+    const filtered = CONDITIONS.filter(c => c.category === filter);
+
+    grid.innerHTML = filtered.map(c => `
+        <article class="condition-card ${c.color}" data-category="${c.category}">
+            <div class="condition-icon" style="background: var(--${c.color}-bg); color: var(--${c.color}-fg);">
+                <span>${c.icon}</span>
+            </div>
+            <div class="condition-content">
+                <h4>${c.name}</h4>
+                <p>${c.desc}</p>
+            </div>
+            <span class="condition-tag">${c.category}</span>
+        </article>
+    `).join('');
+}
+
+function initTabs() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+            tab.classList.add('active');
+            tab.setAttribute('aria-selected', 'true');
+            renderConditions(tab.dataset.tab);
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderConditions('common');
+    initTabs();
+
+    // Health Tips Modal
+    const fab = document.getElementById('healthTipsFab');
+    const modal = document.getElementById('healthTipsModal');
+    const backdrop = document.getElementById('healthTipsBackdrop');
+    const closeBtn = document.getElementById('healthTipsClose');
+
+    function openModal() {
+        modal.hidden = false;
+        fab.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+        closeBtn.focus();
+    }
+
+    function closeModal() {
+        modal.hidden = true;
+        fab.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+        fab.focus();
+    }
+
+    fab.addEventListener('click', () => {
+        if (modal.hidden) openModal();
+        else closeModal();
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modal.hidden) closeModal();
+    });
+
+    // Our Doctors Modal
+    const doctorsFab = document.getElementById('ourDoctorsFab');
+    const doctorsModal = document.getElementById('ourDoctorsModal');
+    const doctorsBackdrop = document.getElementById('ourDoctorsBackdrop');
+    const doctorsCloseBtn = document.getElementById('ourDoctorsClose');
+
+    function openDoctorsModal() {
+        doctorsModal.hidden = false;
+        doctorsFab.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+        doctorsCloseBtn.focus();
+    }
+
+    function closeDoctorsModal() {
+        doctorsModal.hidden = true;
+        doctorsFab.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+        doctorsFab.focus();
+    }
+
+    doctorsFab.addEventListener('click', () => {
+        if (doctorsModal.hidden) openDoctorsModal();
+        else closeDoctorsModal();
+    });
+
+    doctorsCloseBtn.addEventListener('click', closeDoctorsModal);
+    doctorsBackdrop.addEventListener('click', closeDoctorsModal);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !doctorsModal.hidden) closeDoctorsModal();
+    });
+
+});
+</script>
+{% endblock %}

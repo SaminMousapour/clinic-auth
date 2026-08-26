@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Complete Doctor Profile{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert {% if message.tags %}{{ message.tags }}{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if errors %}
+    <div class="messages">
+        {% for error in errors %}
+        <div class="alert alert-error">{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <h2>Complete Your Doctor Profile</h2>
+    <p class="subtitle">We need a few more details to set up your doctor account</p>
+
+    <form method="post" class="login-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" autocomplete="off" id="name" name="name" required 
+                   placeholder="e.g., Dr. John Smith" 
+                   value="{{ form_data.name|default:g_first|add:' '|add:g_last }}">
+        </div>
+        <div class="form-group">
+            <label for="medical_number">Medical Number (4 digits)</label>
+            <input type="text" autocomplete="off" id="medical_number" name="medical_number" required 
+                   maxlength="4" minlength="4" pattern="\d{4}" 
+                   placeholder="e.g., 1234" 
+                   value="{{ form_data.medical_number|default:'' }}">
+        </div>
+        <div class="form-group">
+            <label for="specialty">Specialty</label>
+            <input type="text" autocomplete="off" id="specialty" name="specialty" required 
+                   placeholder="e.g., Cardiology, Neurology, General" 
+                   value="{{ form_data.specialty|default:'' }}">
+        </div>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="3" 
+                      placeholder="Brief description of your practice">{{ form_data.description|default:'' }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Complete Profile</button>
+    </form>
+
+    <div class="back-link">
+        <a href="{% url 'home' %}">Back to Home</a>
+    </div>
+</div>
+{% endblock %}

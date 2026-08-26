@@ -1,0 +1,21 @@
+[phases.setup]
+nixPkgs = ["python311", "postgresql", "pkg-config", "openssl", "libpq"]
+
+[phases.install]
+cmds = [
+  "pip install --upgrade pip",
+  "pip install -r requirements.txt"
+]
+
+[phases.build]
+cmds = [
+  "python manage.py collectstatic --noinput"
+]
+
+[start]
+cmd = "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py seed_admin && python manage.py seed_doctors && gunicorn clinic_auth.wsgi --bind 0.0.0.0:$PORT --workers 1 --timeout 30"
+
+[variables]
+PYTHONUNBUFFERED = "1"
+PYTHONDONTWRITEBYTECODE = "1"
+PIP_NO_CACHE_DIR = "1"

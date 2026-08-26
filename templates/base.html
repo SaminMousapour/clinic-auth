@@ -1,16 +1,42 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Clinic Management{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20250822e">
 </head>
 <body>
     <div class="container">
         {% block content %}{% endblock %}
     </div>
+    <script>
+        document.addEventListener('click', function (e) {
+            var tip = document.getElementById('truncate-tooltip');
+            if (tip) tip.remove();
+
+            var cell = e.target.closest('.truncated');
+            if (!cell) return;
+            if (cell.scrollWidth <= cell.clientWidth) return;
+
+            var rect = cell.getBoundingClientRect();
+            tip = document.createElement('div');
+            tip.id = 'truncate-tooltip';
+            tip.className = 'truncate-tooltip';
+            tip.textContent = cell.getAttribute('title') || cell.textContent.trim();
+            document.body.appendChild(tip);
+
+            var left = Math.min(rect.left, window.innerWidth - tip.offsetWidth - 8);
+            if (left < 4) left = 4;
+            var top = rect.bottom + 6;
+            if (top + tip.offsetHeight > window.innerHeight) {
+                top = rect.top - tip.offsetHeight - 6;
+            }
+            tip.style.top = top + 'px';
+            tip.style.left = left + 'px';
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

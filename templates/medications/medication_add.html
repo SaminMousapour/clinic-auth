@@ -13,7 +13,7 @@
     {% endif %}
 
     <h2>Add Medication</h2>
-    <p class="subtitle">Enter medication details and select days</p>
+    <p class="subtitle">Enter your medication details below</p>
 
     <form method="post" class="login-form">
         {% csrf_token %}
@@ -25,20 +25,34 @@
             <label for="dosage">Dosage</label>
             <input type="text" autocomplete="off" id="dosage" name="dosage" required placeholder="e.g., 500mg">
         </div>
+
         <div class="form-group">
-            <label for="time">Time (HH:MM)</label>
-            <input type="time" autocomplete="off" id="time" name="time" required>
+            <label for="times_per_day">How many times per day?</label>
+            <select id="times_per_day" name="times_per_day" required onchange="updateTimeFields()">
+                <option value="1" selected>Once a day</option>
+                <option value="2">Twice a day</option>
+                <option value="3">3 times a day</option>
+                <option value="4">4 times a day</option>
+            </select>
         </div>
-        <div class="form-group">
-            <label for="times_per_day">Times per Day</label>
-            <input type="number" autocomplete="off" id="times_per_day" name="times_per_day" min="1" max="10" value="1" required>
+
+        <div id="time-fields">
+            <div class="form-group time-field" data-index="1">
+                <label for="time_1">Time 1</label>
+                <input type="time" autocomplete="off" id="time_1" name="time_1" required>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Select Days</label>
+
+        <div class="form-group" style="text-align:center;">
+            <label style="display:block; text-align:center; margin-bottom:8px;">Select Days</label>
+            <label class="day-checkbox select-all-row">
+                <input type="checkbox" id="select-all-days" onchange="toggleAllDays(this)">
+                <span>Select All 7 Days</span>
+            </label>
             <div class="days-checkboxes">
                 {% for value, label in days %}
                 <label class="day-checkbox">
-                    <input type="checkbox" name="days_of_week" value="{{ value }}">
+                    <input type="checkbox" name="days_of_week" value="{{ value }}" class="day-cb" onchange="updateSelectAll()">
                     <span>{{ label }}</span>
                 </label>
                 {% endfor %}
@@ -51,5 +65,46 @@
         <a href="{% url 'medication_list' %}">Back to Medications</a>
     </div>
 </div>
-{% endblock %}
 
+<script>
+function updateTimeFields() {
+    var count = parseInt(document.getElementById('times_per_day').value);
+    var container = document.getElementById('time-fields');
+    var existing = {};
+    container.querySelectorAll('.time-field').forEach(function(el) {
+        existing[el.dataset.index] = el.querySelector('input').value;
+    });
+    container.innerHTML = '';
+    for (var i = 1; i <= count; i++) {
+        var div = document.createElement('div');
+        div.className = 'form-group time-field';
+        div.dataset.index = i;
+        var label = document.createElement('label');
+        label.setAttribute('for', 'time_' + i);
+        label.textContent = 'Time ' + i;
+        var input = document.createElement('input');
+        input.type = 'time';
+        input.id = 'time_' + i;
+        input.name = 'time_' + i;
+        input.autocomplete = 'off';
+        input.required = true;
+        if (existing[i]) input.value = existing[i];
+        div.appendChild(label);
+        div.appendChild(input);
+        container.appendChild(div);
+    }
+}
+
+function toggleAllDays(cb) {
+    document.querySelectorAll('.day-cb').forEach(function(el) {
+        el.checked = cb.checked;
+    });
+}
+
+function updateSelectAll() {
+    var all = document.querySelectorAll('.day-cb');
+    var checked = document.querySelectorAll('.day-cb:checked');
+    document.getElementById('select-all-days').checked = (all.length === checked.length);
+}
+</script>
+{% endblock %}

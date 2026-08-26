@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Visit - {{ patient.full_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <nav class="dash-nav">
+        <div class="dash-nav-inner">
+            <a href="/" class="nav-logo">
+                <svg width="32" height="32" viewBox="0 0 100 100">
+                    <rect x="10" y="10" width="80" height="80" rx="15" fill="#1e3a8a" opacity="0.15"/>
+                    <rect x="42" y="20" width="16" height="50" rx="3" fill="#1e3a8a"/>
+                    <rect x="25" y="42" width="50" height="16" rx="3" fill="#1e3a8a"/>
+                </svg>
+                <span>ClinicOS</span>
+            </a>
+            <div class="dash-nav-right">
+                <a href="{% url 'doctor_appointments' %}" class="btn btn-sm btn-ghost">Dashboard</a>
+                <span class="dash-user">Dr. {{ doctor.name }}</span>
+                <a href="{% url 'logout' %}" class="btn btn-sm btn-ghost">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="dash-main">
+        {% if messages %}
+        <div class="messages" style="max-width:1200px; margin:16px auto 0;">
+            {% for message in messages %}
+            <div class="alert {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="visit-header">
+            <a href="{% url 'doctor_appointments' %}" class="visit-back">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back
+            </a>
+            <div class="visit-patient-info">
+                <div class="visit-avatar">{{ patient.full_name.0 }}</div>
+                <div>
+                    <h1 class="visit-name">{{ patient.full_name }}</h1>
+                    <div class="visit-meta">
+                        {{ appointment.date }} &middot; {{ appointment.time }} &middot; {{ appointment.reason }}
+                    </div>
+                </div>
+            </div>
+            {% if visit.is_completed %}
+            <span class="visit-completed-badge">Completed</span>
+            <form method="post" class="visit-header-complete-form" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="undo_visit">
+                <button type="submit" class="btn btn-sm btn-ghost visit-undo-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    Undo
+                </button>
+            </form>
+            {% else %}
+            <form method="post" id="markVisitedForm" class="visit-header-complete-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="mark_visited">
+                <input type="hidden" name="blood_type" id="hBloodType">
+                <input type="hidden" name="allergies" id="hAllergies">
+                <input type="hidden" name="disease_history" id="hDiseaseHistory">
+                <input type="hidden" name="notes" id="hNotes">
+                <button type="submit" class="btn btn-primary btn-sm visit-complete-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+                    Mark Completed
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        <div class="visit-grid">
+            <div class="visit-row">
+                <div class="visit-col visit-col-info">
+                    <div class="visit-card">
+                        <h2 class="visit-section-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            Patient Information
+                        </h2>
+                        <form method="post" id="patientInfoForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="save_info">
+                            <div class="visit-field-row">
+                                <div class="visit-field">
+                                    <label>Blood Type</label>
+                                    <select name="blood_type" class="visit-select">
+                                        <option value="">Select...</option>
+                                        <option value="A+" {% if visit.blood_type == 'A+' %}selected{% endif %}>A+</option>
+                                        <option value="A-" {% if visit.blood_type == 'A-' %}selected{% endif %}>A-</option>
+                                        <option value="B+" {% if visit.blood_type == 'B+' %}selected{% endif %}>B+</option>
+                                        <option value="B-" {% if visit.blood_type == 'B-' %}selected{% endif %}>B-</option>
+                                        <option value="AB+" {% if visit.blood_type == 'AB+' %}selected{% endif %}>AB+</option>
+                                        <option value="AB-" {% if visit.blood_type == 'AB-' %}selected{% endif %}>AB-</option>
+                                        <option value="O+" {% if visit.blood_type == 'O+' %}selected{% endif %}>O+</option>
+                                        <option value="O-" {% if visit.blood_type == 'O-' %}selected{% endif %}>O-</option>
+                                    </select>
+                                </div>
+                                <div class="visit-field">
+                                    <label>Phone</label>
+                                    <input type="text" value="{{ patient.phone }}" disabled class="visit-input disabled">
+                                </div>
+                                <div class="visit-field">
+                                    <label>Email</label>
+                                    <input type="text" value="{{ patient.email }}" disabled class="visit-input disabled">
+                                </div>
+                            </div>
+                            <div class="visit-field" style="margin-top:12px;">
+                                <label>Allergies</label>
+                                <textarea name="allergies" class="visit-textarea" rows="2" placeholder="Known allergies...">{{ visit.allergies }}</textarea>
+                            </div>
+                            <div class="visit-field" style="margin-top:12px;">
+                                <label>Disease History</label>
+                                <textarea name="disease_history" class="visit-textarea" rows="3" placeholder="Past diseases and conditions...">{{ visit.disease_history }}</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary visit-save-btn">Save Info</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="visit-side-wrap">
+                    <div class="visit-col visit-col-fixed">
+                        <div class="visit-card">
+                            <h2 class="visit-section-title">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" stroke-width="2"><path d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3"/></svg>
+                                Medications
+                            </h2>
+                            <div class="visit-meds-list">
+                                {% for med in medications %}
+                                <div class="visit-med-item">
+                                    <span class="visit-med-name">{{ med.name }}</span>
+                                    <span class="visit-med-dose">{{ med.dosage }}</span>
+                                </div>
+                                {% empty %}
+                                <p class="visit-empty-text">No medications recorded.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="visit-card">
+                            <h2 class="visit-section-title visit-title-row">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                Health Readings
+                                <button type="button" id="chartToggle" class="visit-chart-btn">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 3 5-6"/></svg>
+                                    Chart
+                                </button>
+                            </h2>
+                            {{ readings_chart|json_script:"readings-chart-data" }}
+                            <div id="chartPanel" class="visit-chart-panel">
+                                <div id="readingsChart"></div>
+                            </div>
+                            <div class="visit-readings-list">
+                                {% for r in health_readings %}
+                                <div class="visit-reading-item">
+                                    <span class="visit-reading-type">{{ r.get_reading_type_display }}</span>
+                                    <span class="visit-reading-value">
+                                        {% if r.reading_type == 'blood_pressure' %}{{ r.systolic }}/{{ r.diastolic }}{% else %}{{ r.value }}{% endif %}
+                                    </span>
+                                    <span class="visit-reading-date">{{ r.month }}/{{ r.day }}</span>
+                                </div>
+                                {% empty %}
+                                <p class="visit-empty-text">No health readings recorded.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="visit-row">
+                <div class="visit-col visit-col-stretch">
+                    <div class="visit-card">
+                        <h2 class="visit-section-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                            Prescriptions
+                        </h2>
+                        {% for rx in prescriptions %}
+                        <div class="visit-rx-item">
+                            <div class="visit-rx-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                            </div>
+                            <div class="visit-rx-info">
+                                {% if rx.text %}
+                                <p class="visit-rx-text">{{ rx.text|linebreaksbr }}</p>
+                                {% endif %}
+                                {% if rx.file %}
+                                <a href="{{ rx.file.url }}" target="_blank" class="visit-rx-file">View prescription file</a>
+                                {% endif %}
+                                <span class="visit-rx-date">{{ rx.created_at|date:"M d, Y H:i" }}</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="visit-empty-text">No prescriptions yet.</p>
+                        {% endfor %}
+                        <form method="post" enctype="multipart/form-data" class="visit-rx-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="add_prescription">
+                            <div class="visit-field">
+                                <textarea name="prescription_text" class="visit-textarea" rows="3" placeholder="Write prescription here..."></textarea>
+                            </div>
+                            <div class="visit-upload-row" style="margin-top:8px;">
+                                <label class="visit-file-label">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                    Or upload file
+                                    <input type="file" name="prescription_file" class="visit-file-input" accept="image/*,.pdf,.doc,.docx">
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Add Prescription</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="visit-col visit-col-stretch">
+                    <div class="visit-card visit-card-flex">
+                        <h2 class="visit-section-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                            Medical Records
+                        </h2>
+                        <div class="visit-meds-list">
+                            {% for record in records %}
+                            <div class="visit-med-item">
+                                <span class="visit-med-name">{{ record.title }}</span>
+                                <a href="{{ record.file.url }}" target="_blank" class="btn btn-sm btn-ghost">View</a>
+                            </div>
+                            {% empty %}
+                            <p class="visit-empty-text">No records uploaded.</p>
+                            {% endfor %}
+                        </div>
+                        <form method="post" enctype="multipart/form-data" class="visit-record-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="upload_record">
+                            <div class="visit-upload-row">
+                                <input type="text" name="record_title" placeholder="Title (e.g., Blood Test)" class="visit-input visit-input-sm" required>
+                                <label class="visit-file-label">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                    <input type="file" name="record_file" class="visit-file-input" accept="image/*,.pdf,.doc,.docx">
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm" style="margin-top:6px;">Upload</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            {% if past_visits %}
+            <div class="visit-row">
+                <div class="visit-col-full">
+                    <div class="visit-card">
+                        <h2 class="visit-section-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+                            Past Visits
+                        </h2>
+                        <div class="visit-past-list">
+                            {% for pv in past_visits %}
+                            <div class="visit-past-item">
+                                <div class="visit-past-date">{{ pv.visited_at|date:"M d, Y" }}</div>
+                                {% if pv.blood_type %}<span class="visit-past-tag">{{ pv.blood_type }}</span>{% endif %}
+                                {% if pv.notes %}<p class="visit-past-notes">{{ pv.notes|truncatewords:20 }}</p>{% endif %}
+                                {% if pv.prescriptions.all %}
+                                <span class="visit-past-count">{{ pv.prescriptions.all|length }} prescription{{ pv.prescriptions.all|length|pluralize }}</span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.getElementById('markVisitedForm').addEventListener('submit', function(e) {
+    var form = document.getElementById('patientInfoForm');
+    document.getElementById('hBloodType').value = form.querySelector('[name="blood_type"]').value;
+    document.getElementById('hAllergies').value = form.querySelector('[name="allergies"]').value;
+    document.getElementById('hDiseaseHistory').value = form.querySelector('[name="disease_history"]').value;
+    document.getElementById('hNotes').value = form.querySelector('[name="notes"]').value;
+});
+
+document.querySelectorAll('.visit-file-input').forEach(function(input) {
+    input.addEventListener('change', function() {
+        var label = this.closest('.visit-file-label');
+        if (this.files.length > 0) {
+            label.classList.add('has-file');
+            label.querySelector('svg').nextSibling.textContent = this.files[0].name;
+        } else {
+            label.classList.remove('has-file');
+        }
+    });
+});
+
+(function () {
+    var toggle = document.getElementById('chartToggle');
+    var panel = document.getElementById('chartPanel');
+    if (!toggle || !panel) return;
+    var rendered = false;
+
+    function renderChart() {
+        var box = document.getElementById('readingsChart');
+        var raw = document.getElementById('readings-chart-data');
+        var readings = raw ? JSON.parse(raw.textContent) : [];
+        box.innerHTML = '';
+        if (!readings.length || typeof Chart === 'undefined') {
+            box.innerHTML = '<p class="visit-empty-text">No readings to chart yet.</p>';
+            return;
+        }
+
+        var labels = [...new Set(readings.map(r => r.l))];
+
+        function mapToLabels(filtered, getVal) {
+            return labels.map(l => {
+                const match = filtered.find(r => r.l === l);
+                return match ? getVal(match) : null;
+            });
+        }
+
+        const bpReadings = readings.filter(r => r.t === 'blood_pressure');
+        const sugarReadings = readings.filter(r => r.t === 'blood_sugar');
+        const hrReadings = readings.filter(r => r.t === 'heart_rate');
+
+        const datasets = [];
+
+        if (bpReadings.length > 0) {
+            datasets.push({
+                label: 'Systolic BP',
+                data: mapToLabels(bpReadings, r => r.a),
+                borderColor: '#e53e3e',
+                backgroundColor: 'rgba(229, 62, 62, 0.1)',
+                tension: 0.1,
+                spanGaps: true
+            });
+            datasets.push({
+                label: 'Diastolic BP',
+                data: mapToLabels(bpReadings, r => r.b),
+                borderColor: '#3182ce',
+                backgroundColor: 'rgba(49, 130, 206, 0.1)',
+                tension: 0.1,
+                spanGaps: true
+            });
+        }
+
+        if (sugarReadings.length > 0) {
+            datasets.push({
+                label: 'Blood Sugar',
+                data: mapToLabels(sugarReadings, r => r.v),
+                borderColor: '#d69e2e',
+                backgroundColor: 'rgba(214, 158, 46, 0.1)',
+                tension: 0.1,
+                spanGaps: true
+            });
+        }
+
+        if (hrReadings.length > 0) {
+            datasets.push({
+                label: 'Heart Rate',
+                data: mapToLabels(hrReadings, r => r.v),
+                borderColor: '#38a169',
+                backgroundColor: 'rgba(56, 161, 105, 0.1)',
+                tension: 0.1,
+                spanGaps: true
+            });
+        }
+
+        if (datasets.length > 0) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 400;
+            canvas.height = 250;
+            box.appendChild(canvas);
+            new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: { display: true, text: 'Health Metrics Over Time' }
+                    },
+                    scales: {
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+        } else {
+            box.innerHTML = '<p class="visit-empty-text">No chartable readings yet.</p>';
+        }
+    }
+
+    toggle.addEventListener('click', function () {
+        var open = panel.classList.toggle('open');
+        toggle.classList.toggle('active', open);
+        if (open && !rendered) { rendered = true; renderChart(); }
+    });
+})();
+</script>
+{% endblock %}

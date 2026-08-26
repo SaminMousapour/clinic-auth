@@ -3,10 +3,13 @@ from . import views
 
 urlpatterns = [
     path('', views.home, name='home'),
-    path('select-role/', views.select_role, name='select_role'),
+    path('dashboard/', views.patient_dashboard, name='patient_dashboard'),
     path('login/', views.login_view, name='login'),
     path('register/', views.register_patient, name='register'),
+    path('google/complete/', views.google_complete_profile, name='google_complete_profile'),
+    path('google/complete-doctor/', views.google_complete_doctor_profile, name='google_complete_doctor_profile'),
     path('logout/', views.logout_view, name='logout'),
+    path('google/complete-profile/', views.google_complete_profile, name='google_complete_profile'),
 
     # Patient appointment URLs
     path('appointments/', views.patient_appointments, name='patient_appointments'),
@@ -16,12 +19,15 @@ urlpatterns = [
 
     # Doctor appointment URLs
     path('doctor/appointments/', views.doctor_appointments, name='doctor_appointments'),
+    path('doctor/insurance-settings/', views.doctor_insurance_settings, name='doctor_insurance_settings'),
+    path('doctor/visit/<int:appointment_id>/', views.doctor_patient_visit, name='doctor_patient_visit'),
 
     # Admin URLs
     path('admin-panel/', views.admin_panel, name='admin_panel'),
     path('admin-panel/add-doctor/', views.admin_add_doctor, name='admin_add_doctor'),
     path('admin-panel/promote/', views.admin_promote_user, name='admin_promote_user'),
     path('admin-panel/demote/', views.admin_demote_user, name='admin_demote_user'),
+    path('admin-panel/remove-user/', views.admin_remove_user, name='admin_remove_user'),
 
     # Medication URLs
     path('medications/', views.medication_list, name='medication_list'),
