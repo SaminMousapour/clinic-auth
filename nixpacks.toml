@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["python311", "postgresql", "pkg-config", "openssl", "libpq"]
+nixPkgs = ["python311", "postgresql", "pkg-config", "openssl"]
 
 [phases.install]
 cmds = [
