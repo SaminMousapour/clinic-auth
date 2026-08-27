@@ -268,6 +268,14 @@
                                 <strong>Notes:</strong>
                                 <p style="margin:4px 0 0; color:#6b7280;">{{ pr.notes|linebreaksbr }}</p>
                                 {% endif %}
+                                {% if pr.file %}
+                                <div style="margin-top:8px;">
+                                    <a href="{{ pr.file.url }}" target="_blank" style="color:#7c3aed; font-weight:500; text-decoration:none;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                                        View attached file
+                                    </a>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                         {% endfor %}

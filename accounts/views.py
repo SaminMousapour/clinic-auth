@@ -1305,6 +1305,7 @@ def patient_record_add(request):
         symptoms = request.POST.get('symptoms', '').strip()
         notes = request.POST.get('notes', '').strip()
         appointment_id = request.POST.get('appointment_id', '')
+        uploaded_file = request.FILES.get('file', None)
 
         if not symptoms:
             messages.error(request, 'Please describe your symptoms.')
@@ -1322,6 +1323,7 @@ def patient_record_add(request):
             appointment=appointment,
             symptoms=symptoms,
             notes=notes,
+            file=uploaded_file,
         )
         messages.success(request, 'Medical record added successfully.')
         return redirect('patient_records')

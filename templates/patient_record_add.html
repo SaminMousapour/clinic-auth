@@ -13,7 +13,7 @@
     </div>
     {% endif %}
 
-    <form method="post" class="login-form" novalidate>
+    <form method="post" class="login-form" novalidate enctype="multipart/form-data">
         {% csrf_token %}
 
         <div class="form-group">
@@ -26,6 +26,12 @@
             <label for="notes">Additional Notes</label>
             <textarea id="notes" name="notes" rows="3"
                 placeholder="Any additional information... (e.g., medications taken, when it started)"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="file">Attach File (optional)</label>
+            <input type="file" id="file" name="file" class="form-file-input" accept="image/*,.pdf,.doc,.docx,.txt">
+            <small class="form-hint">Upload test results, prescriptions, or any medical document (image, PDF, or document)</small>
         </div>
 
         {% if appointments %}

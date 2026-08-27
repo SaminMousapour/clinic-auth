@@ -284,6 +284,7 @@ class PatientRecord(models.Model):
     appointment = models.ForeignKey(Appointment, on_delete=models.SET_NULL, null=True, blank=True, related_name='patient_records')
     symptoms = models.TextField(help_text='Describe your symptoms')
     notes = models.TextField(default='', blank=True, help_text='Any additional notes')
+    file = models.FileField(upload_to='patient_records/%Y/%m/', blank=True, null=True)
     date_added = models.DateField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
