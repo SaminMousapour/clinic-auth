@@ -1396,6 +1396,14 @@ body {
     margin: 0;
 }
 
+.health-tip-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+}
+
 .health-tip-desc {
     font-size: 0.9rem;
     color: #64748b;
@@ -2238,18 +2246,20 @@ body {
         align-items: center;
         gap: 6px;
         padding: 6px 14px;
-        border: 1px solid #e2e8f0;
+        border: none;
         border-radius: 100px;
-        background: #f8fafc;
-        color: #475569;
+        color: white;
         font-size: 0.78rem;
         font-weight: 600;
         cursor: pointer;
-        align-self: flex-start;
-        margin-top: 4px;
+        flex-shrink: 0;
         transition: all 0.2s ease;
     }
-    .health-tip-open:hover { background: #eef2f7; color: #0f172a; }
+    .health-tip-card.green .health-tip-open { background: linear-gradient(135deg, #059669, #10b981); }
+    .health-tip-card.blue .health-tip-open { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+    .health-tip-card.teal .health-tip-open { background: linear-gradient(135deg, #0d9488, #14b8a6); }
+    .health-tip-card.emerald .health-tip-open { background: linear-gradient(135deg, #059669, #34d399); }
+    .health-tip-open:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
     .cta-inner { padding: 52px 24px; }
     .cta-inner h3 { font-size: 1.8rem; }
