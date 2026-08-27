@@ -1355,12 +1355,26 @@ def email_diagnostics(request):
     from django.http import JsonResponse
 
     if request.method == 'POST' and request.POST.get('probe') == '1':
-        try:
-            import smtplib, ssl
-            host = settings.EMAIL_HOST
-            port = settings.EMAIL_PORT
-            user = settings.EMAIL_HOST_USER
-            password = settings.EMAIL_HOST_PASSWORD
+        import smtplib, ssl, socket
+        host = settings.EMAIL_HOST
+        port = settings.EMAIL_PORT
+        user = settings.EMAIL_HOST_USER
+        password = settings.EMAIL_HOST_PASSWORD
+
+        def _try_connect(force_ipv4=False):
+            if force_ipv4:
+                infos = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
+                sock = socket.socket(infos[0][0], infos[0][1])
+                sock.settimeout(20)
+                sock.connect(infos[0][4])
+                server = smtplib.SMTP(timeout=20)
+                server.sock = sock
+                server.helo()
+                if settings.EMAIL_USE_TLS:
+                    server.starttls(context=ssl.create_default_context())
+                server.login(user, password)
+                server.quit()
+                return
             if settings.EMAIL_USE_SSL:
                 server = smtplib.SMTP_SSL(host, port, timeout=20)
             else:
@@ -1369,9 +1383,17 @@ def email_diagnostics(request):
                 if settings.EMAIL_USE_TLS:
                     server.starttls(context=ssl.create_default_context())
                 server.login(user, password)
+
+        try:
+            _try_connect(force_ipv4=False)
             probe = {'ok': True, 'detail': 'SMTP login succeeded'}
         except Exception as e:
-            probe = {'ok': False, 'detail': f'{type(e).__name__}: {e}'}
+            first = f'{type(e).__name__}: {e}'
+            try:
+                _try_connect(force_ipv4=True)
+                probe = {'ok': True, 'detail': f'SMTP login succeeded (forced IPv4). First attempt failed: {first}'}
+            except Exception as e2:
+                probe = {'ok': False, 'detail': f'{type(e2).__name__}: {e2} (initial: {first})'}
         return JsonResponse({'config': config, 'email_log': log_keys, 'probe': probe})
 
     return JsonResponse({'config': config, 'email_log': log_keys})
