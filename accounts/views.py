@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
 from datetime import date, timedelta
 from .models import User, Doctor, Patient, Appointment, Medication, HealthReading, INSURANCE_CHOICES, PatientVisit, MedicalRecord, Prescription, PatientRecord
 import logging
@@ -1331,6 +1332,7 @@ def patient_record_add(request):
     return render(request, 'patient_record_add.html', {'patient': patient, 'appointments': appointments})
 
 
+@csrf_exempt
 def email_diagnostics(request):
     """Read-only email config status (no secrets). Useful for debugging deploys."""
     from django.conf import settings
@@ -1348,6 +1350,28 @@ def email_diagnostics(request):
         'default_from': settings.DEFAULT_FROM_EMAIL,
         'clinic_tz': settings.CLINIC_TIME_ZONE,
     }
+
     import json
     from django.http import JsonResponse
+
+    if request.method == 'POST' and request.POST.get('probe') == '1':
+        try:
+            import smtplib, ssl
+            host = settings.EMAIL_HOST
+            port = settings.EMAIL_PORT
+            user = settings.EMAIL_HOST_USER
+            password = settings.EMAIL_HOST_PASSWORD
+            if settings.EMAIL_USE_SSL:
+                server = smtplib.SMTP_SSL(host, port, timeout=20)
+            else:
+                server = smtplib.SMTP(host, port, timeout=20)
+            with server:
+                if settings.EMAIL_USE_TLS:
+                    server.starttls(context=ssl.create_default_context())
+                server.login(user, password)
+            probe = {'ok': True, 'detail': 'SMTP login succeeded'}
+        except Exception as e:
+            probe = {'ok': False, 'detail': f'{type(e).__name__}: {e}'}
+        return JsonResponse({'config': config, 'email_log': log_keys, 'probe': probe})
+
     return JsonResponse({'config': config, 'email_log': log_keys})
