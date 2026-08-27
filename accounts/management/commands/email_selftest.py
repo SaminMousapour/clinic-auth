@@ -19,14 +19,32 @@ WEEKDAY_MAP = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday
 class Command(BaseCommand):
     help = 'One-shot: seed a test appointment (tomorrow now) + medication (now) and force-send all reminder emails.'
 
-    @transaction.atomic
     def handle(self, *args, **options):
         self.stdout.write('Running email self-test...')
 
-        if _already_sent('selftest-done'):
-            self.stdout.write('Self-test already ran; skipping.')
+        # Never let a failure here take down the web process or fail the deploy.
+        try:
+            if _already_sent('selftest-done'):
+                self.stdout.write('Self-test already ran; skipping.')
+                return
+            with transaction.atomic():
+                r1, r2, r3 = self._seed_and_send()
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'Email self-test raised unexpectedly: {e}. '
+                                               'The web process will continue normally.'))
             return
 
+        self.stdout.write(self.style.SUCCESS(f'Medication reminders: {r1}'))
+        self.stdout.write(self.style.SUCCESS(f'Appointment reminders (24h-before): {r2}'))
+        self.stdout.write(self.style.SUCCESS(f'Doctor patient lists: {r3}'))
+
+        if r1.get('sent', 0) > 0 and r2.get('sent', 0) > 0 and r3.get('sent', 0) > 0:
+            _mark_sent('selftest-done')
+            self.stdout.write(self.style.SUCCESS('Email self-test complete — all senders delivered.'))
+        else:
+            self.stdout.write(self.style.ERROR('Email self-test had failures; it will be retried on next deploy.'))
+
+    def _seed_and_send(self):
         patient = next((p for p in Patient.objects.all() if p.email == TEST_PATIENT_EMAIL), None)
         if not patient:
             self.stdout.write(self.style.WARNING(f'Patient {TEST_PATIENT_EMAIL} not found; creating a test patient.'))
@@ -87,7 +105,7 @@ class Command(BaseCommand):
             doctor = Doctor.objects.select_related('user').first()
             if not doctor:
                 self.stdout.write(self.style.ERROR('No doctors available. Aborting.'))
-                return
+                return None, None, None
             # Make sure the doctor can receive email for the test.
             if not doctor.user.email:
                 doctor.user.email = TEST_PATIENT_EMAIL
@@ -114,17 +132,6 @@ class Command(BaseCommand):
 
         # ---- 3. Run all three senders ----
         r1 = send_medication_reminders_for_current_time()
-        self.stdout.write(self.style.SUCCESS(f'Medication reminders: {r1}'))
-
         r2 = send_appointment_reminders_due()
-        self.stdout.write(self.style.SUCCESS(f'Appointment reminders (24h-before): {r2}'))
-
         r3 = send_doctor_patient_lists_due()
-        self.stdout.write(self.style.SUCCESS(f'Doctor patient lists: {r3}'))
-
-        ok = r1.get('sent', 0) > 0 and r2.get('sent', 0) > 0 and r3.get('sent', 0) > 0
-        if ok:
-            _mark_sent('selftest-done')
-            self.stdout.write(self.style.SUCCESS('Email self-test complete — all senders delivered.'))
-        else:
-            self.stdout.write(self.style.ERROR('Email self-test had failures; it will be retried on next deploy.'))
+        return r1, r2, r3

@@ -600,15 +600,6 @@ def send_doctor_patient_lists_due(window_minutes=10):
     return {'due': len(doctor_day_min), 'sent': sent_count, 'failed': failed_count, 'skipped_no_email': skipped_no_email}
 
 
-def send_doctor_patient_lists_due():
-    """
-    Send each doctor their patient list ~24h before their first appointment of the day.
-    Uses the clinic timezone to determine 'tomorrow' correctly.
-    """
-    tomorrow = _clinic_today() + timedelta(days=1)
-    return send_doctor_patient_lists_for_day(tomorrow)
-
-
 def send_doctor_patient_list_for_tomorrow():
     """Compatibility alias used by send_doctor_patient_list management command."""
     return send_doctor_patient_lists_for_day(_clinic_today() + timedelta(days=1))
