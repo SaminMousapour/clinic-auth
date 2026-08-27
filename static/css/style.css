@@ -1267,6 +1267,7 @@ body {
 .health-tip-card.emerald .health-tip-open { background: linear-gradient(135deg, #059669, #34d399); }
 
 .health-tip-card .health-tip-list { display: none; }
+.health-tip-card .health-tip-desc { display: none; }
 
 .health-tip-focus {
     position: fixed;
