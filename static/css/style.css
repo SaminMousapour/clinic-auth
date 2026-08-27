@@ -2164,10 +2164,17 @@ body {
     .step-card { padding: 24px 16px; }
     .step-connector { display: none; }
 
-    .health-tips-panel { width: 100%; margin: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
-    .our-doctors-panel { width: 100%; margin: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+    .health-tips-panel { width: 100%; margin: 0; max-height: 100vh; border-radius: 0; overflow-y: auto; }
+    .health-tips-modal { padding: 0; }
+    .our-doctors-panel { width: 100%; margin: 0; max-height: 100vh; border-radius: 0; overflow-y: auto; }
+    .our-doctors-modal { padding: 0; }
     .health-tips-grid { grid-template-columns: 1fr; gap: 12px; padding: 12px; }
     .health-tip-card { padding: 16px 14px; }
+    .health-tip-desc { font-size: 0.85rem; }
+    .health-tip-list li { font-size: 0.82rem; }
+    .health-tips-header { padding: 16px; }
+    .health-tips-header h2 { font-size: 1.2rem; }
+    .health-tip-quote { padding: 16px; }
     .our-doctors-grid { grid-template-columns: 1fr; }
     .doctor-card { flex-direction: column; text-align: center; }
 
