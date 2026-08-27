@@ -200,19 +200,14 @@
                                 </svg>
                             </div>
                             <h3>Healthy Eating</h3>
-                            <div class="health-tip-body">
-                                <p class="health-tip-desc">Nourish your body with balanced, wholesome nutrition every day.</p>
-                                <ul class="health-tip-list">
-                                    <li>Fresh fruits and vegetables</li>
-                                    <li>Drink enough water (8 glasses a day)</li>
-                                    <li>Reduce sugar and salt</li>
-                                    <li>Eat protein and dairy</li>
-                                </ul>
-                            </div>
-                            <button type="button" class="health-tip-expand" aria-expanded="false">
-                                <span class="health-tip-expand-label">Read more</span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                            </button>
+                            <p class="health-tip-desc">Nourish your body with balanced, wholesome nutrition every day.</p>
+                            <ul class="health-tip-list">
+                                <li>Fresh fruits and vegetables</li>
+                                <li>Drink enough water (8 glasses a day)</li>
+                                <li>Reduce sugar and salt</li>
+                                <li>Eat protein and dairy</li>
+                            </ul>
+                            <span class="health-tip-open">Read more</span>
                         </article>
                         <article class="health-tip-card blue">
                             <div class="health-tip-icon">
@@ -224,18 +219,13 @@
                                 </svg>
                             </div>
                             <h3>Daily Exercise</h3>
-                            <div class="health-tip-body">
-                                <p class="health-tip-desc">Move your body regularly to strengthen heart, muscles, and mind.</p>
-                                <ul class="health-tip-list">
-                                    <li>Daily walking (30 minutes)</li>
-                                    <li>Stretching or yoga</li>
-                                    <li>Aerobic exercise (at least 3 times a week)</li>
-                                </ul>
-                            </div>
-                            <button type="button" class="health-tip-expand" aria-expanded="false">
-                                <span class="health-tip-expand-label">Read more</span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                            </button>
+                            <p class="health-tip-desc">Move your body regularly to strengthen heart, muscles, and mind.</p>
+                            <ul class="health-tip-list">
+                                <li>Daily walking (30 minutes)</li>
+                                <li>Stretching or yoga</li>
+                                <li>Aerobic exercise (at least 3 times a week)</li>
+                            </ul>
+                            <span class="health-tip-open">Read more</span>
                         </article>
                         <article class="health-tip-card teal">
                             <div class="health-tip-icon">
@@ -247,19 +237,14 @@
                                 </svg>
                             </div>
                             <h3>Good Habits</h3>
-                            <div class="health-tip-body">
-                                <p class="health-tip-desc">Small daily choices build a foundation for lifelong wellness.</p>
-                                <ul class="health-tip-list">
-                                    <li>Enough sleep (7–8 hours)</li>
-                                    <li>Stress management (meditation or deep breathing)</li>
-                                    <li>No smoking</li>
-                                    <li>Regular annual check-ups</li>
-                                </ul>
-                            </div>
-                            <button type="button" class="health-tip-expand" aria-expanded="false">
-                                <span class="health-tip-expand-label">Read more</span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                            </button>
+                            <p class="health-tip-desc">Small daily choices build a foundation for lifelong wellness.</p>
+                            <ul class="health-tip-list">
+                                <li>Enough sleep (7–8 hours)</li>
+                                <li>Stress management (meditation or deep breathing)</li>
+                                <li>No smoking</li>
+                                <li>Regular annual check-ups</li>
+                            </ul>
+                            <span class="health-tip-open">Read more</span>
                         </article>
                         <article class="health-tip-card emerald">
                             <div class="health-tip-icon">
@@ -271,21 +256,27 @@
                                 </svg>
                             </div>
                             <h3>Healthy Foods</h3>
-                            <div class="health-tip-body">
-                                <p class="health-tip-desc">Nature's superfoods to boost immunity and vitality naturally.</p>
-                                <ul class="health-tip-list">
-                                    <li>Honey</li>
-                                    <li>Garlic</li>
-                                    <li>Ginger</li>
-                                    <li>Probiotic yogurt</li>
-                                    <li>Walnuts and almonds</li>
-                                </ul>
-                            </div>
-                            <button type="button" class="health-tip-expand" aria-expanded="false">
-                                <span class="health-tip-expand-label">Read more</span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                            </button>
+                            <p class="health-tip-desc">Nature's superfoods to boost immunity and vitality naturally.</p>
+                            <ul class="health-tip-list">
+                                <li>Honey</li>
+                                <li>Garlic</li>
+                                <li>Ginger</li>
+                                <li>Probiotic yogurt</li>
+                                <li>Walnuts and almonds</li>
+                            </ul>
+                            <span class="health-tip-open">Read more</span>
                         </article>
+                    </div>
+                    <div class="health-tip-focus" id="healthTipFocus" hidden>
+                        <div class="health-tip-focus-backdrop" data-close></div>
+                        <div class="health-tip-focus-panel">
+                            <button class="health-tip-focus-close" id="healthTipFocusClose" aria-label="Close">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6L6 18M6 6l12 12"/>
+                                </svg>
+                            </button>
+                            <div class="health-tip-focus-content" id="healthTipFocusContent"></div>
+                        </div>
                     </div>
                     <blockquote class="health-tip-quote">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -469,25 +460,65 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape' && !modal.hidden) closeModal();
     });
 
-    // Health tip cards expand/collapse
-    document.querySelectorAll('.health-tip-card').forEach(function(card) {
-        var expandBtn = card.querySelector('.health-tip-expand');
-        var busy = false;
+    // Health tip cards focus overlay
+    const focusOverlay = document.getElementById('healthTipFocus');
+    const focusContent = document.getElementById('healthTipFocusContent');
+    const focusClose = document.getElementById('healthTipFocusClose');
+    const grid = document.querySelector('.health-tips-grid');
 
-        function toggle(e) {
-            if (e.target.closest('a')) return;
-            if (busy) return;
-            busy = true;
-            var expanded = card.classList.toggle('expanded');
-            if (expandBtn) {
-                expandBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-                var label = expandBtn.querySelector('.health-tip-expand-label');
-                if (label) label.textContent = expanded ? 'Show less' : 'Read more';
-            }
-            setTimeout(function() { busy = false; }, 0);
-        }
-        if (expandBtn) expandBtn.addEventListener('click', toggle);
-        card.addEventListener('click', toggle);
+    function tipTheme(card) {
+        return card.classList.contains('blue') ? 'blue'
+            : card.classList.contains('teal') ? 'teal'
+            : card.classList.contains('emerald') ? 'emerald' : 'green';
+    }
+
+    document.querySelectorAll('.health-tip-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+            const iconSvg = card.querySelector('.health-tip-icon svg');
+            const title = card.querySelector('h3');
+            const desc = card.querySelector('.health-tip-desc');
+            const list = card.querySelector('.health-tip-list');
+
+            focusContent.innerHTML = '<div class="health-tip-icon"></div>' +
+                '<h3></h3><p class="health-tip-desc"></p><ul class="health-tip-list"></ul>';
+            const fi = focusContent.querySelector('.health-tip-icon');
+            const ft = focusContent.querySelector('h3');
+            const fd = focusContent.querySelector('.health-tip-desc');
+            const fl = focusContent.querySelector('.health-tip-list');
+
+            const theme = tipTheme(card);
+            fi.className = 'health-tip-icon ' + theme;
+            if (iconSvg) fi.appendChild(iconSvg.cloneNode(true));
+            ft.textContent = title.textContent;
+            fd.textContent = desc.textContent;
+            list.querySelectorAll('li').forEach(function(li) {
+                const n = document.createElement('li');
+                n.textContent = li.textContent;
+                fl.appendChild(n);
+            });
+
+            focusOverlay.hidden = false;
+            grid.classList.add('health-tips-blur');
+            requestAnimationFrame(() => {
+                focusOverlay.classList.add('open');
+                document.body.style.overflow = 'hidden';
+            });
+            focusClose.focus();
+        });
+    });
+
+    function closeTipFocus() {
+        if (focusOverlay.hidden) return;
+        focusOverlay.classList.remove('open');
+        grid.classList.remove('health-tips-blur');
+        document.body.style.overflow = '';
+        setTimeout(() => { focusOverlay.hidden = true; }, 300);
+    }
+
+    focusClose.addEventListener('click', closeTipFocus);
+    focusOverlay.querySelector('.health-tip-focus-backdrop').addEventListener('click', closeTipFocus);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !focusOverlay.hidden) closeTipFocus();
     });
 
     // Our Doctors Modal
