@@ -9,7 +9,6 @@ urlpatterns = [
     path('google/complete/', views.google_complete_profile, name='google_complete_profile'),
     path('google/complete-doctor/', views.google_complete_doctor_profile, name='google_complete_doctor_profile'),
     path('logout/', views.logout_view, name='logout'),
-    path('google/complete-profile/', views.google_complete_profile, name='google_complete_profile'),
 
     # Patient appointment URLs
     path('appointments/', views.patient_appointments, name='patient_appointments'),

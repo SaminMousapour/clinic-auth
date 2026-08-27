@@ -62,16 +62,23 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             return
 
     def save_user(self, request, sociallogin, form=None):
-        """
-        Save the user after social login. This is called for new users.
-        """
         user = super().save_user(request, sociallogin, form)
         extra_data = sociallogin.account.extra_data
         
         user.first_name = extra_data.get('given_name', '')
         user.last_name = extra_data.get('family_name', '')
-        user.save()
+        user.role = 'patient'
         
+        if not user.username or user.username.startswith('google_'):
+            base = (user.email or 'googleuser').split('@')[0]
+            username = base[:140]
+            suffix = 1
+            while User.objects.filter(username=username).exclude(pk=user.pk).exists():
+                username = f"{base[:130]}{suffix}"
+                suffix += 1
+            user.username = username
+        
+        user.save()
         return user
 
     def get_login_redirect_url(self, request):
