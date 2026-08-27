@@ -2125,10 +2125,22 @@ body {
         grid-template-columns: 1fr;
     }
 
-    .conditions-tabs { gap: 8px; }
-    .tab-btn { padding: 8px 16px; font-size: 0.8rem; }
+    .conditions-tabs { gap: 8px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+    .tab-btn { padding: 8px 16px; font-size: 0.8rem; flex-shrink: 0; }
     .conditions-grid { grid-template-columns: 1fr; }
-    .condition-card { padding: 24px 20px; }
+    .condition-card { padding: 20px 16px; }
+
+    .how-it-works { padding: 40px 16px; }
+    .how-header h3 { font-size: 1.5rem; }
+    .steps-grid { gap: 20px; }
+    .step-card { padding: 24px 16px; }
+    .step-connector { display: none; }
+
+    .health-tips-panel { width: 100%; margin: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+    .our-doctors-panel { width: 100%; margin: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+    .health-tips-grid { grid-template-columns: 1fr; }
+    .our-doctors-grid { grid-template-columns: 1fr; }
+    .doctor-card { flex-direction: column; text-align: center; }
 
     .cta-actions { flex-direction: column; align-items: center; }
     .cta-actions .btn { width: 100%; max-width: 280px; }
