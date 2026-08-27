@@ -2351,6 +2351,7 @@ body {
 .module-my-appointments::before { background: linear-gradient(90deg, #16a34a, #4ade80); }
 .module-medications::before { background: linear-gradient(90deg, #ea580c, #fb923c); }
 .module-health::before { background: linear-gradient(90deg, #dc2626, #f87171); }
+.module-records::before { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
 
 .module-card-top {
     display: flex;
@@ -2376,6 +2377,7 @@ body {
 .module-my-appointments .module-icon { background: #f0fdf4; color: #16a34a; }
 .module-medications .module-icon { background: #fff7ed; color: #ea580c; }
 .module-health .module-icon { background: #fef2f2; color: #dc2626; }
+.module-records .module-icon { background: #f5f3ff; color: #7c3aed; }
 
 .module-card h3 {
     font-size: 1.15rem;
@@ -2407,6 +2409,7 @@ body {
 .module-my-appointments .module-tag { background: #f0fdf4; color: #16a34a; }
 .module-medications .module-tag { background: #fff7ed; color: #ea580c; }
 .module-health .module-tag { background: #fef2f2; color: #dc2626; }
+.module-records .module-tag { background: #f5f3ff; color: #7c3aed; }
 
 .module-arrow {
     flex-shrink: 0;
