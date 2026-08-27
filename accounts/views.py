@@ -398,7 +398,8 @@ def register_patient(request):
         user = User.objects.create_user(
             username=username,
             password=password1,
-            role='patient'
+            role='patient',
+            email=email
         )
 
         patient = Patient(

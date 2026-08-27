@@ -16,7 +16,7 @@ class Command(BaseCommand):
             return
 
         site = Site.objects.get(id=1)
-        site.domain = 'web-production-34eea.up.railway.app'
+        site.domain = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost').split(',')[0].strip()
         site.name = 'ClinicOS'
         site.save()
 
