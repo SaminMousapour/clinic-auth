@@ -1,8 +1,32 @@
-from django.core.mail import send_mail
+﻿from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from datetime import date, timedelta, datetime, time
-from accounts.models import Appointment, Medication
+from zoneinfo import ZoneInfo
+from accounts.models import Appointment, Medication, EmailLog
+
+
+def _clinic_tz():
+    return ZoneInfo(settings.CLINIC_TIME_ZONE)
+
+
+def _clinic_now():
+    return datetime.now(_clinic_tz())
+
+
+def _clinic_today():
+    return _clinic_now().date()
+
+
+def _already_sent(key):
+    return EmailLog.objects.filter(key=key).exists()
+
+
+def _mark_sent(key):
+    try:
+        EmailLog.objects.get_or_create(key=key)
+    except Exception:
+        pass
 
 
 def send_appointment_reminder_email(appointment):
@@ -293,29 +317,65 @@ The ClinicOS Team
         return False
 
 
+
+def _start_dt(appointment):
+    return datetime(appointment.year, appointment.month, appointment.day,
+                    appointment.hour, appointment.minute, tzinfo=_clinic_tz())
+
+
+def send_appointment_reminders_due(window_minutes=10):
+    """
+    Send appointment reminder to each patient exactly ~24h before their appointment.
+    Each appointment is emailed at most once (dedup via EmailLog).
+    """
+    now = _clinic_now()
+    due = Appointment.objects.exclude(is_cancelled=True).select_related('patient', 'doctor')
+    sent_count = 0
+    failed_count = 0
+    checked = 0
+
+    for appointment in due:
+        start = _start_dt(appointment)
+        diff = start - now
+        diff_minutes = diff.total_seconds() / 60
+        target = 24 * 60  # 24 hours earlier
+        if abs(diff_minutes - target) <= window_minutes:
+            checked += 1
+            key = f'appt-reminder-{appointment.id}'
+            if _already_sent(key):
+                continue
+            if send_appointment_reminder_email(appointment):
+                _mark_sent(key)
+                sent_count += 1
+            else:
+                failed_count += 1
+
+    return {'checked': checked, 'sent': sent_count, 'failed': failed_count}
+
+
 def send_appointment_reminders_for_tomorrow():
     """
-    Send reminder emails for all appointments scheduled for tomorrow.
+    Legacy: send reminder emails for all appointments scheduled for tomorrow.
     This should be run daily via a cron job or scheduled task.
     """
-    tomorrow = date.today() + timedelta(days=1)
-    
+    tomorrow = _clinic_today() + timedelta(days=1)
+
     appointments = Appointment.objects.filter(
         day=tomorrow.day,
         month=tomorrow.month,
         year=tomorrow.year,
         is_cancelled=False
     ).select_related('patient', 'doctor')
-    
+
     sent_count = 0
     failed_count = 0
-    
+
     for appointment in appointments:
         if send_appointment_reminder_email(appointment):
             sent_count += 1
         else:
             failed_count += 1
-    
+
     return {
         'total': sent_count + failed_count,
         'sent': sent_count,
@@ -326,138 +386,108 @@ def send_appointment_reminders_for_tomorrow():
 
 def send_medication_reminders_for_current_time():
     """
-    Send medication reminder emails for medications due at the current time.
-    This should be run every 15 minutes via a cron job or scheduled task.
+    Send medication reminder emails for medications due at the current clinic time.
+    Each (medication, day, time) is emailed at most once (dedup via EmailLog).
+    Should be run frequently (e.g. every 5-10 minutes).
     """
-    now = datetime.now()
+    now = _clinic_now()
     current_time = now.time()
-    current_hour = current_time.hour
-    current_minute = current_time.minute
-    
-    # Round to nearest 15 minutes for matching
-    # We check if current time matches any medication time within a 7-minute window
     weekday_map = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday', 4: 'friday', 5: 'saturday', 6: 'sunday'}
-    today_name = weekday_map[date.today().weekday()]
-    
-    # Get all medications for today
+    today_name = weekday_map[now.weekday()]
+
     medications = Medication.objects.filter(
         days_of_week__contains=today_name
     ).select_related('patient')
-    
+
     sent_count = 0
     failed_count = 0
-    
+    matched = 0
+
     for medication in medications:
-        # Get all scheduled times for this medication
         times_list = []
         if medication.times_of_day:
             times_list = [t.strip() for t in medication.times_of_day.split(',') if t.strip()]
         else:
             times_list = [str(medication.time)]
-        
-        # Check if current time matches any scheduled time (within 7 minutes)
+
         for time_str in times_list:
             try:
                 med_time = datetime.strptime(time_str, '%H:%M').time()
-                # Check if current time is within 7 minutes of medication time
-                med_datetime = datetime.combine(date.today(), med_time)
-                current_datetime = datetime.combine(date.today(), current_time)
-                diff_minutes = abs((current_datetime - med_datetime).total_seconds() / 60)
-                
-                if diff_minutes <= 7:  # Within 7 minutes window
-                    if send_medication_reminder_email(medication, reminder_time=current_time):
+                med_dt = datetime.combine(now.date(), med_time, tzinfo=_clinic_tz())
+                diff_minutes = abs((now - med_dt).total_seconds() / 60)
+                if diff_minutes <= 7:
+                    matched += 1
+                    key = f'med-{medication.id}-{now.date().isoformat()}-{time_str}'
+                    if _already_sent(key):
+                        continue
+                    if send_medication_reminder_email(medication, reminder_time=med_time):
+                        _mark_sent(key)
                         sent_count += 1
                     else:
                         failed_count += 1
-                    break  # Only send once per medication per check
+                    break
             except ValueError:
                 continue
-    
+
     return {
-        'total': sent_count + failed_count,
+        'matched': matched,
         'sent': sent_count,
         'failed': failed_count,
-        'date': date.today(),
+        'date': now.date(),
+        'time': current_time.strftime('%H:%M'),
     }
 
 
-def send_appointment_reminders_for_tomorrow():
-    """
-    Send reminder emails for all appointments scheduled for tomorrow.
-    This should be run daily via a cron job or scheduled task.
-    """
-    tomorrow = date.today() + timedelta(days=1)
-    
-    appointments = Appointment.objects.filter(
-        day=tomorrow.day,
-        month=tomorrow.month,
-        year=tomorrow.year,
-        is_cancelled=False
-    ).select_related('patient', 'doctor')
-    
-    sent_count = 0
-    failed_count = 0
-    
-    for appointment in appointments:
-        if send_appointment_reminder_email(appointment):
-            sent_count += 1
-        else:
-            failed_count += 1
-    
-    return {
-        'total': sent_count + failed_count,
-        'sent': sent_count,
-        'failed': failed_count,
-        'date': tomorrow,
-    }
+def send_medication_reminders_for_today():
+    """Compatibility: delegate to the current-time sender (used by send_medication_reminders command)."""
+    return send_medication_reminders_for_current_time()
 
 
-def send_doctor_patient_list_for_tomorrow():
+def send_doctor_patient_lists_for_day(day_date, force=False):
     """
-    Send doctor's patient list for tomorrow's appointments.
-    This should be run daily in the evening (e.g., 8 PM) via a cron job.
-    Sends each doctor a list of their patients for tomorrow with 2-line summary per patient.
+    Send each doctor their patient list for a given date.
+    Dedup keyed on (doctor, date) so each doctor gets at most one list per day.
     """
-    tomorrow = date.today() + timedelta(days=1)
-    
     appointments = Appointment.objects.filter(
-        day=tomorrow.day,
-        month=tomorrow.month,
-        year=tomorrow.year,
+        day=day_date.day,
+        month=day_date.month,
+        year=day_date.year,
         is_cancelled=False
     ).select_related('patient', 'doctor').order_by('doctor', 'hour', 'minute')
-    
-    # Group appointments by doctor
+
     from collections import defaultdict
     doctor_appointments = defaultdict(list)
-    
     for appt in appointments:
         doctor_appointments[appt.doctor].append(appt)
-    
+
     sent_count = 0
     failed_count = 0
-    
+    skipped_no_email = 0
+
     for doctor, appointments_list in doctor_appointments.items():
         if not doctor.user.email:
+            skipped_no_email += 1
             continue
-            
-        subject = f'Patient List for Tomorrow ({tomorrow.strftime("%B %d, %Y")}) - Dr. {doctor.name}'
-        
-        # Build patient list (2 lines per patient)
+
+        key = f'dr-list-{doctor.id}-{day_date.isoformat()}'
+        if not force and _already_sent(key):
+            continue
+
+        subject = f'Patient List for {day_date.strftime("%B %d, %Y")} - Dr. {doctor.name}'
+
         patient_lines = []
         for appt in appointments_list:
             patient = appt.patient
             line1 = f"{appt.hour:02d}:{appt.minute:02d} - {patient.full_name}"
             line2 = f"  Age: {patient.age}, Phone: {patient.phone}, Reason: {appt.reason}"
             patient_lines.append(f"{line1}\n{line2}")
-        
+
         patient_list_text = "\n\n".join(patient_lines)
-        
-        # Plain text message
+
         message = f"""
 Dear Dr. {doctor.name},
 
-Here is your patient list for tomorrow ({tomorrow.strftime('%A, %B %d, %Y')}):
+Here is your patient list for {day_date.strftime('%A, %B %d, %Y')}:
 
 {patient_list_text}
 
@@ -466,8 +496,7 @@ Total patients: {len(appointments_list)}
 Best regards,
 ClinicOS
 """
-        
-        # HTML message
+
         html_message = f"""
 <!DOCTYPE html>
 <html>
@@ -478,33 +507,31 @@ ClinicOS
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; margin: 0; padding: 0; background-color: #f8fafc;">
     <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
         <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06); border: 1px solid #e2e8f0;">
-            <!-- Header -->
             <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b5fc0 100%); padding: 40px 32px; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 1.75rem; font-weight: 700;">Tomorrow's Patient List</h1>
-                <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 1rem;">Dr. {doctor.name} - {tomorrow.strftime('%A, %B %d, %Y')}</p>
+                <h1 style="color: white; margin: 0; font-size: 1.75rem; font-weight: 700;">Patient List</h1>
+                <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 1rem;">Dr. {doctor.name} - {day_date.strftime('%A, %B %d, %Y')}</p>
             </div>
-            
+
             <div style="padding: 40px 32px;">
                 <p style="font-size: 1.1rem; color: #334155; margin-bottom: 24px;">Dear Dr. <strong>{doctor.name}</strong>,</p>
-                
+
                 <p style="color: #475569; font-size: 1rem; margin-bottom: 24px;">
-                    Here is your patient list for <strong>tomorrow ({tomorrow.strftime('%A, %B %d, %Y')})</strong>.
+                    Here is your patient list for <strong>{day_date.strftime('%A, %B %d, %Y')}</strong>.
                 </p>
-                
+
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
                     <h3 style="margin: 0 0 20px; font-size: 1.1rem; font-weight: 700; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">Patients ({len(appointments_list)} total)</h3>
-                    
+
                     <div style="font-family: monospace; font-size: 0.9rem; line-height: 1.8; white-space: pre-wrap; color: #334155;">
 {chr(10).join(patient_lines)}
                     </div>
                 </div>
-                
+
                 <p style="color: #64748b; font-size: 0.95rem; text-align: center; margin-top: 32px;">
                     Thank you for choosing <strong>ClinicOS</strong>
                 </p>
             </div>
-            
-            <!-- Footer -->
+
             <div style="text-align: center; padding: 24px 32px 0; border-top: 1px solid #e2e8f0; margin-top: 24px;">
                 <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;">The ClinicOS Team</p>
                 <p style="margin: 8px 0 0; font-size: 0.75rem; color: #94a3b8;">This is an automated summary. Please do not reply to this email.</p>
@@ -514,7 +541,7 @@ ClinicOS
 </body>
 </html>
 """
-        
+
         try:
             send_mail(
                 subject=subject,
@@ -524,14 +551,64 @@ ClinicOS
                 html_message=html_message,
                 fail_silently=False,
             )
+            _mark_sent(key)
             sent_count += 1
         except Exception as e:
             print(f"Failed to send doctor patient list email to Dr. {doctor.name}: {e}")
             failed_count += 1
-    
+
     return {
-        'total': sent_count + failed_count,
+        'total': len(doctor_appointments),
         'sent': sent_count,
         'failed': failed_count,
-        'date': tomorrow,
+        'skipped_no_email': skipped_no_email,
+        'date': day_date,
     }
+
+
+def send_doctor_patient_lists_due(window_minutes=10):
+    """
+    Send each doctor their patient list ~24h before their first appointment of the day.
+    Dedup keyed on (doctor, date) so at most one list per doctor per day.
+    """
+    now = _clinic_now()
+    due = Appointment.objects.exclude(is_cancelled=True).select_related('patient', 'doctor')
+    from collections import defaultdict
+    doctor_day_min = {}
+
+    for appointment in due:
+        start = _start_dt(appointment)
+        diff = start - now
+        diff_minutes = diff.total_seconds() / 60
+        target = 24 * 60
+        if abs(diff_minutes - target) <= window_minutes:
+            day_date = date(appointment.year, appointment.month, appointment.day)
+            key = (appointment.doctor.id, day_date)
+            if key not in doctor_day_min or start < doctor_day_min[key][0]:
+                doctor_day_min[key] = (start, day_date)
+
+    sent_count = 0
+    failed_count = 0
+    skipped_no_email = 0
+
+    for (doctor_id, day_date), (start, dd) in doctor_day_min.items():
+        sent = send_doctor_patient_lists_for_day(dd, force=False)
+        sent_count += sent['sent']
+        failed_count += sent['failed']
+        skipped_no_email += sent['skipped_no_email']
+
+    return {'due': len(doctor_day_min), 'sent': sent_count, 'failed': failed_count, 'skipped_no_email': skipped_no_email}
+
+
+def send_doctor_patient_lists_due():
+    """
+    Send each doctor their patient list ~24h before their first appointment of the day.
+    Uses the clinic timezone to determine 'tomorrow' correctly.
+    """
+    tomorrow = _clinic_today() + timedelta(days=1)
+    return send_doctor_patient_lists_for_day(tomorrow)
+
+
+def send_doctor_patient_list_for_tomorrow():
+    """Compatibility alias used by send_doctor_patient_list management command."""
+    return send_doctor_patient_lists_for_day(_clinic_today() + timedelta(days=1))

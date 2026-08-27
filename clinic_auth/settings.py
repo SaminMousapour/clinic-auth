@@ -113,6 +113,9 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 
+# Clinic local timezone used for scheduling reminder emails (e.g. Asia/Tehran)
+CLINIC_TIME_ZONE = os.environ.get('CLINIC_TIME_ZONE', 'Asia/Tehran')
+
 DEFAULT_CHARSET = 'utf-8'
 USE_TZ = True
 
@@ -132,7 +135,13 @@ AUTH_USER_MODEL = 'accounts.User'
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://127.0.0.1:8000,http://localhost:8000').split(',') if o.strip()]
 
 # Email Configuration
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+# If SMTP credentials are present, default to real SMTP; otherwise fall back to console (dev).
+if os.environ.get('EMAIL_BACKEND'):
+    EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND')
+elif os.environ.get('EMAIL_HOST_USER'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'localhost')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')

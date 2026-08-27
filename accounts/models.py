@@ -300,3 +300,11 @@ class Prescription(models.Model):
 
     def __str__(self):
         return f"Prescription for {self.visit.patient.full_name}"
+
+
+class EmailLog(models.Model):
+    key = models.CharField(max_length=200, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.key
