@@ -207,6 +207,7 @@
                                 <li>Reduce sugar and salt</li>
                                 <li>Eat protein and dairy</li>
                             </ul>
+                            <span class="health-tip-expand"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg> Read more</span>
                         </article>
                         <article class="health-tip-card blue">
                             <div class="health-tip-icon">
@@ -224,6 +225,7 @@
                                 <li>Stretching or yoga</li>
                                 <li>Aerobic exercise (at least 3 times a week)</li>
                             </ul>
+                            <span class="health-tip-expand"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg> Read more</span>
                         </article>
                         <article class="health-tip-card teal">
                             <div class="health-tip-icon">
@@ -242,6 +244,7 @@
                                 <li>No smoking</li>
                                 <li>Regular annual check-ups</li>
                             </ul>
+                            <span class="health-tip-expand"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg> Read more</span>
                         </article>
                         <article class="health-tip-card emerald">
                             <div class="health-tip-icon">
@@ -261,6 +264,7 @@
                                 <li>Probiotic yogurt</li>
                                 <li>Walnuts and almonds</li>
                             </ul>
+                            <span class="health-tip-expand"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg> Read more</span>
                         </article>
                     </div>
                     <blockquote class="health-tip-quote">
@@ -444,6 +448,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !modal.hidden) closeModal();
     });
+
+    // Health tip cards expand/collapse on mobile
+    if ('ontouchstart' in window || window.innerWidth < 768) {
+        document.querySelectorAll('.health-tip-card').forEach(function(card) {
+            card.addEventListener('click', function(e) {
+                if (e.target.closest('a')) return;
+                this.classList.toggle('expanded');
+            });
+        });
+    }
 
     // Our Doctors Modal
     const doctorsFab = document.getElementById('ourDoctorsFab');

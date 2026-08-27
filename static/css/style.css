@@ -2169,12 +2169,19 @@ body {
     .our-doctors-panel { width: 100%; margin: 0; max-height: 100vh; border-radius: 0; overflow-y: auto; }
     .our-doctors-modal { padding: 0; }
     .health-tips-grid { grid-template-columns: 1fr; gap: 12px; padding: 12px; }
-    .health-tip-card { padding: 16px 14px; }
+    .health-tip-card { padding: 16px 14px; cursor: pointer; }
     .health-tip-desc { font-size: 0.85rem; }
     .health-tip-list li { font-size: 0.82rem; }
     .health-tips-header { padding: 16px; }
     .health-tips-header h2 { font-size: 1.2rem; }
     .health-tip-quote { padding: 16px; }
+    .health-tip-card .health-tip-desc,
+    .health-tip-card .health-tip-list { display: none; }
+    .health-tip-card.expanded .health-tip-desc,
+    .health-tip-card.expanded .health-tip-list { display: flex; }
+    .health-tip-card .health-tip-expand { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+    .health-tip-card .health-tip-expand svg { transition: transform 0.3s ease; }
+    .health-tip-card.expanded .health-tip-expand svg { transform: rotate(180deg); }
     .our-doctors-grid { grid-template-columns: 1fr; }
     .doctor-card { flex-direction: column; text-align: center; }
 
