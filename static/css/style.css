@@ -1245,29 +1245,9 @@ body {
 
 .health-tip-card.green { border-color: #10b981; }
 
-.health-tip-open {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border-radius: 100px;
-    background: linear-gradient(135deg, #334155, #1e293b);
-    color: white;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    align-self: flex-start;
-    transition: all 0.3s ease;
-    margin-top: auto;
+@media (min-width: 769px) {
+    .health-tip-open { display: none; }
 }
-.health-tip-open:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(51, 65, 85, 0.35); }
-.health-tip-card.green .health-tip-open { background: linear-gradient(135deg, #059669, #10b981); }
-.health-tip-card.blue .health-tip-open { background: linear-gradient(135deg, #2563eb, #3b82f6); }
-.health-tip-card.teal .health-tip-open { background: linear-gradient(135deg, #0d9488, #14b8a6); }
-.health-tip-card.emerald .health-tip-open { background: linear-gradient(135deg, #059669, #34d399); }
-
-.health-tip-card .health-tip-list { display: none; }
-.health-tip-card .health-tip-desc { display: none; }
 
 .health-tip-focus {
     position: fixed;
@@ -2250,6 +2230,26 @@ body {
     .health-tip-card h3 { font-size: 1rem; }
     .health-tip-desc { font-size: 0.85rem; }
     .health-tip-list li { font-size: 0.82rem; }
+
+    .health-tip-card .health-tip-desc,
+    .health-tip-card .health-tip-list { display: none; }
+    .health-tip-open {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 100px;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        align-self: flex-start;
+        margin-top: 4px;
+        transition: all 0.2s ease;
+    }
+    .health-tip-open:hover { background: #eef2f7; color: #0f172a; }
 
     .cta-inner { padding: 52px 24px; }
     .cta-inner h3 { font-size: 1.8rem; }

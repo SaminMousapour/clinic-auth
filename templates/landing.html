@@ -191,7 +191,7 @@
                         </button>
                     </header>
                     <div class="health-tips-grid">
-                        <article class="health-tip-card green">
+                        <article class="health-tip-card green" data-desc="Nourish your body with balanced, wholesome nutrition every day.">
                             <div class="health-tip-icon">
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
@@ -209,7 +209,7 @@
                             </ul>
                             <span class="health-tip-open">Read more</span>
                         </article>
-                        <article class="health-tip-card blue">
+                        <article class="health-tip-card blue" data-desc="Move your body regularly to strengthen heart, muscles, and mind.">
                             <div class="health-tip-icon">
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <path d="M3 11v-3a9 9 0 0118 0v3"/>
@@ -227,7 +227,7 @@
                             </ul>
                             <span class="health-tip-open">Read more</span>
                         </article>
-                        <article class="health-tip-card teal">
+                        <article class="health-tip-card teal" data-desc="Small daily choices build a foundation for lifelong wellness.">
                             <div class="health-tip-icon">
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
@@ -246,7 +246,7 @@
                             </ul>
                             <span class="health-tip-open">Read more</span>
                         </article>
-                        <article class="health-tip-card emerald">
+                        <article class="health-tip-card emerald" data-desc="Nature's superfoods to boost immunity and vitality naturally.">
                             <div class="health-tip-icon">
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -472,11 +472,16 @@ document.addEventListener('DOMContentLoaded', () => {
             : card.classList.contains('emerald') ? 'emerald' : 'green';
     }
 
+    function isMobileView() {
+        return window.innerWidth <= 768 || ('ontouchstart' in window && window.innerWidth <= 1024);
+    }
+
     document.querySelectorAll('.health-tip-card').forEach(function(card) {
         card.addEventListener('click', function() {
+            if (!isMobileView()) return;
             const iconSvg = card.querySelector('.health-tip-icon svg');
             const title = card.querySelector('h3');
-            const desc = card.querySelector('.health-tip-desc');
+            const descText = card.getAttribute('data-desc') || '';
             const list = card.querySelector('.health-tip-list');
 
             focusContent.innerHTML = '<div class="health-tip-icon"></div>' +
@@ -490,7 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fi.className = 'health-tip-icon ' + theme;
             if (iconSvg) fi.appendChild(iconSvg.cloneNode(true));
             ft.textContent = title.textContent;
-            fd.textContent = desc.textContent;
+            fd.textContent = descText;
             list.querySelectorAll('li').forEach(function(li) {
                 const n = document.createElement('li');
                 n.textContent = li.textContent;
