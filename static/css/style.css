@@ -626,15 +626,15 @@ body {
 
 .conditions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 24px;
     max-width: 1200px;
     margin: 0 auto;
-    grid-auto-flow: dense;
+    padding: 0 16px;
 }
 
 .condition-card:last-child:nth-child(3n+1):nth-last-child(-n+3) {
-    grid-column: span 2;
+    grid-column: span 1;
 }
 
 .condition-card {
@@ -2099,6 +2099,29 @@ body {
         grid-row: span 1;
     }
 
+    .conditions-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        padding: 0 16px;
+    }
+    .conditions-header { padding: 0 16px; }
+
+    .how-it-works { padding: 60px 16px; }
+    .steps-grid { gap: 16px; }
+    .step-card { padding: 24px 16px; }
+    .step-content h4 { font-size: 1.1rem; }
+    .step-content p { font-size: 0.9rem; }
+
+    .health-tips-grid {
+        grid-template-columns: 1fr 1fr;
+        padding: 20px;
+        gap: 16px;
+    }
+    .health-tip-card { padding: 20px 16px; }
+    .health-tip-card h3 { font-size: 1rem; }
+    .health-tip-desc { font-size: 0.85rem; }
+    .health-tip-list li { font-size: 0.82rem; }
+
     .cta-inner { padding: 52px 24px; }
     .cta-inner h3 { font-size: 1.8rem; }
 
@@ -2127,18 +2150,24 @@ body {
 
     .conditions-tabs { gap: 8px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
     .tab-btn { padding: 8px 16px; font-size: 0.8rem; flex-shrink: 0; }
-    .conditions-grid { grid-template-columns: 1fr; }
-    .condition-card { padding: 20px 16px; }
+    .conditions { padding: 60px 12px; }
+    .conditions-header { margin-bottom: 24px; }
+    .conditions-header h3 { font-size: 1.5rem; }
+    .conditions-header p { font-size: 0.9rem; }
+    .conditions-grid { grid-template-columns: 1fr; gap: 12px; padding: 0 4px; }
+    .condition-card { padding: 20px 16px; gap: 12px; }
 
     .how-it-works { padding: 40px 16px; }
     .how-header h3 { font-size: 1.5rem; }
+    .how-header p { font-size: 0.9rem; }
     .steps-grid { gap: 20px; }
     .step-card { padding: 24px 16px; }
     .step-connector { display: none; }
 
     .health-tips-panel { width: 100%; margin: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
     .our-doctors-panel { width: 100%; margin: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
-    .health-tips-grid { grid-template-columns: 1fr; }
+    .health-tips-grid { grid-template-columns: 1fr; gap: 12px; padding: 12px; }
+    .health-tip-card { padding: 16px 14px; }
     .our-doctors-grid { grid-template-columns: 1fr; }
     .doctor-card { flex-direction: column; text-align: center; }
 
