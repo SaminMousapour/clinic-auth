@@ -1329,3 +1329,25 @@ def patient_record_add(request):
         return redirect('patient_records')
 
     return render(request, 'patient_record_add.html', {'patient': patient, 'appointments': appointments})
+
+
+def email_diagnostics(request):
+    """Read-only email config status (no secrets). Useful for debugging deploys."""
+    from django.conf import settings
+    from accounts.models import EmailLog
+
+    log_keys = list(EmailLog.objects.order_by('created_at').values_list('key', flat=True))
+    config = {
+        'backend': settings.EMAIL_BACKEND,
+        'host': settings.EMAIL_HOST,
+        'port': settings.EMAIL_PORT,
+        'use_tls': settings.EMAIL_USE_TLS,
+        'use_ssl': settings.EMAIL_USE_SSL,
+        'host_user_set': bool(settings.EMAIL_HOST_USER),
+        'host_password_set': bool(settings.EMAIL_HOST_PASSWORD),
+        'default_from': settings.DEFAULT_FROM_EMAIL,
+        'clinic_tz': settings.CLINIC_TIME_ZONE,
+    }
+    import json
+    from django.http import JsonResponse
+    return JsonResponse({'config': config, 'email_log': log_keys})

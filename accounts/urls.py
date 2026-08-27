@@ -44,4 +44,7 @@ urlpatterns = [
     # Patient medical records
     path('records/', views.patient_records, name='patient_records'),
     path('records/add/', views.patient_record_add, name='patient_record_add'),
+
+    # Diagnostics (read-only)
+    path('__email_diagnostics/', views.email_diagnostics, name='email_diagnostics'),
 ]
