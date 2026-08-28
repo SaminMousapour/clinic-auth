@@ -167,19 +167,16 @@ The ClinicOS Team
 </html>
 """
     
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[patient_email],
-            html_message=html_message,
-            fail_silently=False,
-        )
+    ok = _deliver(
+        patient_email,
+        subject,
+        message,
+        html_message,
+    )
+    if ok:
         return True
-    except Exception as e:
-        print(f"Failed to send appointment reminder email: {e}")
-        return False
+    print(f"Failed to send appointment reminder email to {patient_email}")
+    return False
 
 
 def send_medication_reminder_email(medication, reminder_time=None):
@@ -302,19 +299,16 @@ The ClinicOS Team
 </html>
 """
     
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[patient.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
+    ok = _deliver(
+        patient.email,
+        subject,
+        message,
+        html_message,
+    )
+    if ok:
         return True
-    except Exception as e:
-        print(f"Failed to send medication reminder email: {e}")
-        return False
+    print(f"Failed to send medication reminder email to {patient.email}")
+    return False
 
 
 
@@ -355,8 +349,8 @@ def send_appointment_reminders_due(window_minutes=10):
 
 def send_appointment_reminders_for_tomorrow():
     """
-    Legacy: send reminder emails for all appointments scheduled for tomorrow.
-    This should be run daily via a cron job or scheduled task.
+    Send reminder emails for all appointments scheduled for tomorrow.
+    Dedup keyed on appointment id so each appointment is emailed once.
     """
     tomorrow = _clinic_today() + timedelta(days=1)
 
@@ -371,7 +365,11 @@ def send_appointment_reminders_for_tomorrow():
     failed_count = 0
 
     for appointment in appointments:
+        key = f'appt-reminder-{appointment.id}'
+        if _already_sent(key):
+            continue
         if send_appointment_reminder_email(appointment):
+            _mark_sent(key)
             sent_count += 1
         else:
             failed_count += 1
@@ -542,19 +540,16 @@ ClinicOS
 </html>
 """
 
-        try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[doctor.user.email],
-                html_message=html_message,
-                fail_silently=False,
-            )
+        if _deliver(
+                doctor.user.email,
+                subject,
+                message,
+                html_message,
+            ):
             _mark_sent(key)
             sent_count += 1
-        except Exception as e:
-            print(f"Failed to send doctor patient list email to Dr. {doctor.name}: {e}")
+        else:
+            print(f"Failed to send doctor patient list email to Dr. {doctor.name}")
             failed_count += 1
 
     return {
@@ -603,3 +598,189 @@ def send_doctor_patient_lists_due(window_minutes=10):
 def send_doctor_patient_list_for_tomorrow():
     """Compatibility alias used by send_doctor_patient_list management command."""
     return send_doctor_patient_lists_for_day(_clinic_today() + timedelta(days=1))
+
+
+ADMIN_SUMMARY_EMAIL = 'samin.mousapourgorji@gmail.com'
+
+
+def send_admin_appointment_summary(day_date, admin_email=ADMIN_SUMMARY_EMAIL):
+    """
+    Send the clinic admin a compiled list of all patients and their appointments
+    for a given day. Deduped so at most one summary per day.
+    """
+    appointments = Appointment.objects.filter(
+        day=day_date.day,
+        month=day_date.month,
+        year=day_date.year,
+        is_cancelled=False
+    ).select_related('patient', 'doctor').order_by('hour', 'minute')
+
+    total = len(appointments)
+    key = f'admin-summary-{day_date.isoformat()}'
+    if _already_sent(key):
+        return {'sent': 0, 'failed': 0, 'total': total, 'already_sent': True}
+
+    if total == 0:
+        _mark_sent(key)
+        return {'sent': 0, 'failed': 0, 'total': 0, 'already_sent': False}
+
+    lines = []
+    for appt in appointments:
+        p = appt.patient
+        lines.append(
+            f"{appt.hour:02d}:{appt.minute:02d} | {p.full_name} | {p.phone} | "
+            f"Dr. {appt.doctor.name} | {appt.reason}"
+        )
+
+    subject = f'ClinicOS Daily Summary: {total} appointment(s) on {day_date.strftime("%A, %B %d, %Y")}'
+    message = (
+        f"ClinicOS appointment summary for {day_date.strftime('%A, %B %d, %Y')}:\n\n"
+        + "\n".join(lines)
+        + f"\n\nTotal: {total}"
+    )
+
+    rows_html = "\n".join(
+        f"<tr><td style='padding:8px;border:1px solid #e2e8f0'>{a.hour:02d}:{a.minute:02d}</td>"
+        f"<td style='padding:8px;border:1px solid #e2e8f0'>{a.patient.full_name}</td>"
+        f"<td style='padding:8px;border:1px solid #e2e8f0'>{a.patient.phone}</td>"
+        f"<td style='padding:8px;border:1px solid #e2e8f0'>Dr. {a.doctor.name}</td>"
+        f"<td style='padding:8px;border:1px solid #e2e8f0'>{a.reason}</td></tr>"
+        for a in appointments
+    )
+
+    html_message = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; margin: 0; padding: 0; background-color: #f8fafc;">
+    <div style="max-width: 700px; margin: 0 auto; padding: 40px 20px;">
+        <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+            <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b5fc0 100%); padding: 32px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 1.5rem;">ClinicOS Daily Summary</h1>
+                <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0;">{day_date.strftime('%A, %B %d, %Y')}</p>
+            </div>
+            <div style="padding: 32px;">
+                <p style="font-size: 1.1rem; color: #334155; margin-bottom: 24px;">Today's appointments: <strong>{total}</strong></p>
+                <table style="border-collapse: collapse; width: 100%; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="background: #f1f5f9;">
+                            <th style="padding:8px;border:1px solid #e2e8f0;text-align:left">Time</th>
+                            <th style="padding:8px;border:1px solid #e2e8f0;text-align:left">Patient</th>
+                            <th style="padding:8px;border:1px solid #e2e8f0;text-align:left">Phone</th>
+                            <th style="padding:8px;border:1px solid #e2e8f0;text-align:left">Doctor</th>
+                            <th style="padding:8px;border:1px solid #e2e8f0;text-align:left">Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+{rows_html}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+    if _deliver(admin_email, subject, message, html_message):
+        _mark_sent(key)
+        return {'sent': 1, 'failed': 0, 'total': total, 'already_sent': False}
+    print(f"Failed to send admin summary email to {admin_email}")
+    return {'sent': 0, 'failed': 1, 'total': total, 'already_sent': False}
+
+
+def run_daily_ten_pm_batch():
+    """
+    Daily 10 PM (clinic time) batch:
+      1) Appointment reminders to every patient with an appointment tomorrow.
+      2) Patient list to every doctor with appointments tomorrow.
+      3) Compiled patient/appointment summary to the clinic admin.
+    """
+    tomorrow = _clinic_today() + timedelta(days=1)
+
+    reminders = send_appointment_reminders_for_tomorrow()
+    doctor_lists = send_doctor_patient_lists_for_day(tomorrow, force=False)
+    summary = send_admin_appointment_summary(tomorrow)
+
+    return {
+        'date': tomorrow,
+        'appointment_reminders': reminders,
+        'doctor_lists': doctor_lists,
+        'admin_summary': summary,
+    }
+
+
+def _extract_email(addr):
+    """'ClinicOS <noreply@x>' -> 'noreply@x'; plain 'a@b' stays."""
+    if '<' in addr and '>' in addr:
+        return addr.split('<')[1].split('>')[0].strip()
+    return addr.strip()
+
+
+def send_brevo_email(to_emails, subject, text_content, html_content):
+    """
+    Send an email via the Brevo (Sendinblue) HTTP API over HTTPS.
+    Railway blocks outbound SMTP (465/587), so this is the only reliable path.
+    Returns {'ok': True/False, 'detail': ..., 'message_id': ...}
+    """
+    import sib_api_v3_sdk
+    from sib_api_v3_sdk.rest import ApiException
+
+    api_key = settings.BREVO_API_KEY
+    if not api_key:
+        return {'ok': False, 'detail': 'BREVO_API_KEY not set'}
+
+    if isinstance(to_emails, str):
+        to_emails = [to_emails]
+    to_list = [{'email': e} for e in to_emails]
+
+    # Brevo requires a verified sender. Use the SMTP username (a real mailbox the
+    # admin owns) when available; otherwise the configured DEFAULT_FROM_EMAIL.
+    sender_email = settings.EMAIL_HOST_USER or _extract_email(settings.DEFAULT_FROM_EMAIL)
+    sender = {'email': sender_email, 'name': 'ClinicOS'}
+
+    configuration = sib_api_v3_sdk.Configuration()
+    configuration.api_key['api-key'] = api_key
+    api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+
+    send_smtp = sib_api_v3_sdk.SendSmtpEmail(
+        sender=sender,
+        to=to_list,
+        subject=subject,
+        text_content=text_content,
+        html_content=html_content,
+    )
+
+    try:
+        api_response = api_instance.send_transac_email(send_smtp)
+        return {'ok': True, 'detail': 'Brevo API sent', 'message_id': api_response.message_id}
+    except ApiException as e:
+        return {'ok': False, 'detail': f'Brevo API error: {e}'}
+
+
+def _deliver(to_emails, subject, text_content, html_content):
+    """
+    Unified delivery: use Brevo HTTPS API when BREVO_API_KEY is configured,
+    otherwise fall back to the configured Django backend (SMTP/console - dev only).
+    Returns True on success.
+    """
+    if settings.BREVO_API_KEY:
+        result = send_brevo_email(to_emails, subject, text_content, html_content)
+        if result.get('ok'):
+            return True
+        recipient = to_emails if isinstance(to_emails, list) else str(to_emails)
+        print(f"Brevo delivery failed ({recipient}): {result.get('detail')}")
+        return False
+    try:
+        send_mail(
+            subject=subject,
+            message=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=to_emails if isinstance(to_emails, list) else [to_emails],
+            html_message=html_content,
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        print(f"Failed to deliver email to {to_emails}: {e}")
+        return False

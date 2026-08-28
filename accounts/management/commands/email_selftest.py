@@ -4,8 +4,7 @@ from datetime import datetime, date, timedelta, time as dt_time
 
 from accounts.email_utils import (
     send_medication_reminders_for_current_time,
-    send_appointment_reminders_due,
-    send_doctor_patient_lists_due,
+    run_daily_ten_pm_batch,
     _clinic_now, _clinic_today, _already_sent, _mark_sent,
 )
 from django.contrib.auth.models import User
@@ -28,17 +27,19 @@ class Command(BaseCommand):
                 self.stdout.write('Self-test already ran; skipping.')
                 return
             with transaction.atomic():
-                r1, r2, r3 = self._seed_and_send()
+                r1, r2, r3, r_admin = self._seed_and_send()
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Email self-test raised unexpectedly: {e}. '
                                                'The web process will continue normally.'))
             return
 
         self.stdout.write(self.style.SUCCESS(f'Medication reminders: {r1}'))
-        self.stdout.write(self.style.SUCCESS(f'Appointment reminders (24h-before): {r2}'))
+        self.stdout.write(self.style.SUCCESS(f'Appointment reminders (tomorrow): {r2}'))
         self.stdout.write(self.style.SUCCESS(f'Doctor patient lists: {r3}'))
+        self.stdout.write(self.style.SUCCESS(f'Admin summary: {r_admin}'))
 
-        if r1.get('sent', 0) > 0 and r2.get('sent', 0) > 0 and r3.get('sent', 0) > 0:
+        if (r1.get('sent', 0) > 0 and r2.get('sent', 0) > 0 and r3.get('sent', 0) > 0
+                and r_admin.get('sent', 0) > 0):
             _mark_sent('selftest-done')
             self.stdout.write(self.style.SUCCESS('Email self-test complete — all senders delivered.'))
         else:
@@ -105,7 +106,7 @@ class Command(BaseCommand):
             doctor = Doctor.objects.select_related('user').first()
             if not doctor:
                 self.stdout.write(self.style.ERROR('No doctors available. Aborting.'))
-                return None, None, None
+                return None, None, None, None
             # Make sure the doctor can receive email for the test.
             if not doctor.user.email:
                 doctor.user.email = TEST_PATIENT_EMAIL
@@ -130,8 +131,11 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f'Test appointment #{appt.id} for tomorrow already exists.')
 
-        # ---- 3. Run all three senders ----
+        # ---- 3. Run the real senders: medication + the daily 10 PM batch ----
         r1 = send_medication_reminders_for_current_time()
-        r2 = send_appointment_reminders_due()
-        r3 = send_doctor_patient_lists_due()
-        return r1, r2, r3
+        batch = run_daily_ten_pm_batch()
+        r2 = batch.get('appointment_reminders', {})
+        r3 = batch.get('doctor_lists', {})
+        r_admin = batch.get('admin_summary', {})
+        self.stdout.write(f'Admin summary sender result: {r_admin}')
+        return r1, r2, r3, r_admin

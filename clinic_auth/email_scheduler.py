@@ -1,4 +1,5 @@
 import logging
+from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -32,10 +33,10 @@ def start_email_scheduler():
         return _scheduler
 
     from accounts.email_utils import (
-        send_appointment_reminders_due,
         send_medication_reminders_for_current_time,
-        send_doctor_patient_lists_due,
+        run_daily_ten_pm_batch,
     )
+    from django.conf import settings
 
     sched = BackgroundScheduler(daemon=True)
 
@@ -49,27 +50,23 @@ def start_email_scheduler():
         coalesce=True,
     )
 
-    # Every 5 minutes: appointment reminders exactly ~24h before.
-    sched.add_job(
-        lambda: _safe_run('appointment_reminder', send_appointment_reminders_due),
-        'interval',
-        minutes=5,
-        id='appointment_reminders',
-        max_instances=1,
-        coalesce=True,
-    )
+    # Daily at 10 PM clinic time: appointment reminders to patients, patient lists
+    # to doctors, and the compiled admin summary. Railway blocks outbound SMTP, so
+    # these go out via the Brevo HTTPS API once BREVO_API_KEY is configured.
+    from apscheduler.triggers.cron import CronTrigger
 
-    # Every 5 minutes: doctor patient lists ~24h before first appointment of the day.
+    clinic_ten_pm = CronTrigger(
+        hour=22, minute=0, timezone=ZoneInfo(settings.CLINIC_TIME_ZONE)
+    )
     sched.add_job(
-        lambda: _safe_run('doctor_patient_list', send_doctor_patient_lists_due),
-        'interval',
-        minutes=5,
-        id='doctor_patient_lists',
+        lambda: _safe_run('daily_10pm_batch', run_daily_ten_pm_batch),
+        clinic_ten_pm,
+        id='daily_ten_pm_batch',
         max_instances=1,
         coalesce=True,
     )
 
     sched.start()
     _scheduler = sched
-    logger.info('Email scheduler started.')
+    logger.info('Email scheduler started (10 PM clinic-time batch + 5-min medication reminders).')
     return _scheduler
