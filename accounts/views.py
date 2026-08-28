@@ -1349,8 +1349,8 @@ def email_diagnostics(request):
         'host_password_set': bool(settings.EMAIL_HOST_PASSWORD),
         'default_from': settings.DEFAULT_FROM_EMAIL,
         'clinic_tz': settings.CLINIC_TIME_ZONE,
-        'brevo_key_set': bool(settings.BREVO_API_KEY),
-        'delivery': 'BREVO_HTTPS_API' if settings.BREVO_API_KEY else 'DJANGO_BACKEND(via SMTP/console)',
+        'maileroo_key_set': bool(settings.MAILEROO_API_KEY),
+        'delivery': 'MAILEROO_HTTPS_API' if settings.MAILEROO_API_KEY else 'DJANGO_BACKEND(via SMTP/console)',
     }
 
     import json

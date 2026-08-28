@@ -717,59 +717,72 @@ def _extract_email(addr):
     return addr.strip()
 
 
-def send_brevo_email(to_emails, subject, text_content, html_content):
+def send_maileroo_email(to_emails, subject, text_content, html_content):
     """
-    Send an email via the Brevo (Sendinblue) HTTP API over HTTPS.
+    Send an email via the Maileroo HTTPS API.
     Railway blocks outbound SMTP (465/587), so this is the only reliable path.
+    Free tier: 5,000 emails/month, no credit card, serves Iranian users.
     Returns {'ok': True/False, 'detail': ..., 'message_id': ...}
     """
-    import sib_api_v3_sdk
-    from sib_api_v3_sdk.rest import ApiException
+    import json
+    import urllib.request
+    import urllib.error
 
-    api_key = settings.BREVO_API_KEY
+    api_key = settings.MAILEROO_API_KEY
     if not api_key:
-        return {'ok': False, 'detail': 'BREVO_API_KEY not set'}
+        return {'ok': False, 'detail': 'MAILEROO_API_KEY not set'}
 
     if isinstance(to_emails, str):
         to_emails = [to_emails]
-    to_list = [{'email': e} for e in to_emails]
+    to_list = [{'address': e} for e in to_emails]
 
-    # Brevo requires a verified sender. Use the SMTP username (a real mailbox the
-    # admin owns) when available; otherwise the configured DEFAULT_FROM_EMAIL.
-    sender_email = settings.EMAIL_HOST_USER or _extract_email(settings.DEFAULT_FROM_EMAIL)
-    sender = {'email': sender_email, 'name': 'ClinicOS'}
+    from_addr = settings.MAILEROO_FROM_EMAIL or _extract_email(settings.DEFAULT_FROM_EMAIL)
 
-    configuration = sib_api_v3_sdk.Configuration()
-    configuration.api_key['api-key'] = api_key
-    api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+    payload = {
+        'from': {'address': from_addr, 'display_name': 'ClinicOS'},
+        'to': to_list,
+        'subject': subject,
+        'html': html_content,
+        'plain': text_content,
+    }
 
-    send_smtp = sib_api_v3_sdk.SendSmtpEmail(
-        sender=sender,
-        to=to_list,
-        subject=subject,
-        text_content=text_content,
-        html_content=html_content,
+    body = json.dumps(payload).encode('utf-8')
+    req = urllib.request.Request(
+        'https://smtp.maileroo.com/api/v2/emails',
+        data=body,
+        headers={
+            'Content-Type': 'application/json',
+            'X-Api-Key': api_key,
+        },
+        method='POST',
     )
 
     try:
-        api_response = api_instance.send_transac_email(send_smtp)
-        return {'ok': True, 'detail': 'Brevo API sent', 'message_id': api_response.message_id}
-    except ApiException as e:
-        return {'ok': False, 'detail': f'Brevo API error: {e}'}
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read().decode('utf-8'))
+        if result.get('success'):
+            ref = result.get('data', {}).get('reference_id', '')
+            return {'ok': True, 'detail': 'Maileroo API sent', 'message_id': ref}
+        return {'ok': False, 'detail': f'Maileroo API error: {result}'}
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode('utf-8', errors='replace') if hasattr(e, 'read') else str(e)
+        return {'ok': False, 'detail': f'Maileroo API HTTP {e.code}: {detail}'}
+    except Exception as e:
+        return {'ok': False, 'detail': f'Maileroo API error: {e}'}
 
 
 def _deliver(to_emails, subject, text_content, html_content):
     """
-    Unified delivery: use Brevo HTTPS API when BREVO_API_KEY is configured,
+    Unified delivery: use Maileroo HTTPS API when MAILEROO_API_KEY is configured,
     otherwise fall back to the configured Django backend (SMTP/console - dev only).
     Returns True on success.
     """
-    if settings.BREVO_API_KEY:
-        result = send_brevo_email(to_emails, subject, text_content, html_content)
+    if settings.MAILEROO_API_KEY:
+        result = send_maileroo_email(to_emails, subject, text_content, html_content)
         if result.get('ok'):
             return True
         recipient = to_emails if isinstance(to_emails, list) else str(to_emails)
-        print(f"Brevo delivery failed ({recipient}): {result.get('detail')}")
+        print(f"Maileroo delivery failed ({recipient}): {result.get('detail')}")
         return False
     try:
         send_mail(
