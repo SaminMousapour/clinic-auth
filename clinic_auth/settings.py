@@ -153,6 +153,37 @@ MAILEROO_API_KEY = os.environ.get('MAILEROO_API_KEY', '')
 MAILEROO_FROM_EMAIL = os.environ.get('MAILEROO_FROM_EMAIL', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'ClinicOS <noreply@clinic.local>')
 
+# ---------------------------------------------------------------------------
+# SMS / push notification channels (worldwide-ready).
+# Reminders are always sent by email; the app ALSO supports SMS so patients and
+# doctors with only a phone number can be reached. Set SMS_PROVIDER + the
+# provider's credentials (below) in Railway to enable. Until then the system
+# safely reports "SMS not configured" without breaking anything.
+#
+#   SMS_PROVIDER        = 'twilio' | 'kavenegar' | 'smsir' | '' (disabled)
+#   DEFAULT_PHONE_CC    = international country code used for local-format numbers
+#                         (e.g. '98' = Iran, '44' = UK, '1' = USA). Patients may
+#                         also enter their numbers with '+' in full E.164 form.
+#   PHONE_REGISTRATION  = 'e164' (world format) | 'local' (Iranian 09...) to control
+#                         the format expected at registration. Default: e164.
+# ---------------------------------------------------------------------------
+SMS_PROVIDER = os.environ.get('SMS_PROVIDER', '').strip().lower()
+DEFAULT_PHONE_CC = os.environ.get('DEFAULT_PHONE_CC', '98')
+PHONE_REGISTRATION = os.environ.get('PHONE_REGISTRATION', 'e164').strip().lower()
+
+# Twilio (global - US/UK/roaming, best worldwide coverage)
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
+TWILIO_FROM_NUMBER = os.environ.get('TWILIO_FROM_NUMBER', '')
+
+# Kavenegar (Iran - iranian SMS panel)
+KAVENEGAR_API_KEY = os.environ.get('KAVENEGAR_API_KEY', '')
+KAVENEGAR_SENDER = os.environ.get('KAVENEGAR_SENDER', '')
+
+# sms.ir (Iran - iranian SMS panel)
+SMSIR_API_KEY = os.environ.get('SMSIR_API_KEY', '')
+SMSIR_SENDER = os.environ.get('SMSIR_SENDER', '')
+
 # Security headers for production HTTPS.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = env_bool('DJANGO_SESSION_COOKIE_SECURE', not DEBUG)

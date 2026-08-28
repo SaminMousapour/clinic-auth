@@ -359,6 +359,18 @@ def register_patient(request):
             errors.append('Valid age is required.')
         if not phone or len(phone) != 11 or not phone.startswith('09') or not phone.isdigit():
             errors.append('Phone must be 11 digits starting with 09.')
+        # Accept Iranian local (09...) or worldwide E.164 (+countrycode...).
+        if not phone:
+            errors.append('Phone is required.')
+        else:
+            digits = ''.join(ch for ch in phone if ch.isdigit())
+            if not digits.isdigit() or len(digits) < 10:
+                errors.append('Phone must be a valid number (Iranian 09... or +countrycode...).')
+            elif phone.startswith('+') and not phone.startswith('+98'):
+                pass  # international number: fine
+            elif not phone.startswith('09') or len(phone) != 11:
+                if not phone.startswith('+'):
+                    errors.append('Phone must be 11 digits starting with 09 (Iran) or start with + for international numbers.')
         if not email or '@' not in email:
             errors.append('Valid email is required.')
         if len(password1) < 8:
@@ -1351,7 +1363,10 @@ def email_diagnostics(request):
         'clinic_tz': settings.CLINIC_TIME_ZONE,
         'maileroo_key_set': bool(settings.MAILEROO_API_KEY),
         'delivery': 'MAILEROO_HTTPS_API' if settings.MAILEROO_API_KEY else 'DJANGO_BACKEND(via SMTP/console)',
+        'sms': None,
     }
+    from accounts.sms import sms_provider_status
+    config['sms'] = sms_provider_status()
 
     import json
     from django.http import JsonResponse

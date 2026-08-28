@@ -29,6 +29,22 @@ def _mark_sent(key):
         pass
 
 
+def _sms_reminder(phone, message, key):
+    """
+    Best-effort SMS reminder. Never raises and never blocks the email path.
+    Dedup via EmailLog so a number is messaged once per key event.
+    """
+    if not phone:
+        return {'ok': False, 'detail': 'no phone on file'}
+    from accounts.sms import send_sms
+    if _already_sent(key):
+        return {'ok': False, 'detail': 'already sent'}
+    result = send_sms(phone, message)
+    if result.get('ok'):
+        _mark_sent(key)
+    return result
+
+
 def send_appointment_reminder_email(appointment):
     """
     Send appointment reminder email to patient one day before appointment.
@@ -173,6 +189,12 @@ The ClinicOS Team
         message,
         html_message,
     )
+    # Also send an SMS when SMS notifications are configured (email stays primary).
+    sms_text = (
+        f"ClinicOS: Dr. {doctor_name} appointment tomorrow "
+        f"{appointment_date.strftime('%b %d')} {appointment_time}."
+    )
+    _sms_reminder(patient.phone, sms_text, f'sms-appt-{appointment.id}')
     if ok:
         return True
     print(f"Failed to send appointment reminder email to {patient_email}")
@@ -305,6 +327,10 @@ The ClinicOS Team
         message,
         html_message,
     )
+    # Also send an SMS when SMS notifications are configured (email stays primary).
+    time_key = (reminder_time or datetime.now(_clinic_tz())).strftime('%Y-%m-%d-%H:%M')
+    sms_text = f"ClinicOS: medication reminder - take {med_name} ({dosage})."
+    _sms_reminder(patient.phone, sms_text, f'sms-med-{medication.id}-{time_key}')
     if ok:
         return True
     print(f"Failed to send medication reminder email to {patient.email}")

@@ -152,7 +152,7 @@ class Appointment(models.Model):
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='appointments')
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='appointments')
     patient_name = models.CharField(max_length=200)
-    patient_phone = models.CharField(max_length=11)
+    patient_phone = models.CharField(max_length=24, help_text='Patient phone (Iranian 09... or +countrycode...)')
     reason = models.TextField()
     day = models.IntegerField()
     month = models.IntegerField()
