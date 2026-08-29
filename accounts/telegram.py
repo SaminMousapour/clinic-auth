@@ -64,9 +64,23 @@ def send_message(chat_id, text):
     })
 
 
+def get_me():
+    """Current bot identity from Telegram (cached per process)."""
+    if not bot_enabled():
+        return {}
+    if getattr(get_me, '_cache', None):
+        return get_me._cache
+    res = api_call('getMe', {})
+    info = res.get('result') or {}
+    get_me._cache = info
+    return info
+
+
 def bot_link(extra=None):
     """Deep link like https://t.me/BotUsername?start=TOKEN (blank if unconfigured)."""
     username = (settings.TELEGRAM_BOT_USERNAME or '').strip().lstrip('@')
+    if not username:
+        username = (get_me().get('username') or '').strip().lstrip('@')
     if not username:
         return ''
     return f'https://t.me/{username}' + (f'?start={extra}' if extra else '')
@@ -172,3 +186,46 @@ def bot_status():
         'bot_username_set': bool(settings.TELEGRAM_BOT_USERNAME),
         'bot_name': settings.TELEGRAM_BOT_NAME,
     }
+
+
+BOT_BIO = (
+    "ClinicOS bot - your clinic companion.\n\n"
+    "Patients receive medication reminders at the right time and a heads-up "
+    "the day before each appointment. Doctors receive their patient list every "
+    "day at 10 PM with the patient's name, appointment time, phone, and reason.\n\n"
+    "Just press Start and connect using the link on the ClinicOS website "
+    "to begin receiving your reminders."
+)
+
+BOT_SHORT_BIO = "ClinicOS reminders: medications, appointments, and doctor patient lists."
+
+BOT_COMMANDS = [
+    ('start', 'Connect your ClinicOS account and see options'),
+    ('help', 'About this bot'),
+]
+
+
+def configure_bot(base_url=None):
+    """
+    Apply the professional bot settings (name, bio, commands) and register the
+    webhook. Runs from the server (which can reach api.telegram.org). Returns a
+    dict of per-call results. Idempotent.
+    """
+    if not bot_enabled():
+        return {'ok': False, 'error': 'TELEGRAM_BOT_TOKEN not configured'}
+    results = {}
+
+    results['setMyName'] = api_call('setMyName', {'name': settings.TELEGRAM_BOT_NAME})
+    results['setMyDescription'] = api_call('setMyDescription', {'description': BOT_BIO})
+    results['setMyShortDescription'] = api_call('setMyShortDescription', {'short_description': BOT_SHORT_BIO})
+    results['setMyCommands'] = api_call('setMyCommands', {'commands': json.dumps([
+        {'command': c, 'description': d} for c, d in BOT_COMMANDS
+    ])})
+
+    url = webhook_url(base=base_url)
+    if url:
+        results['setWebhook'] = set_webhook(url)
+    else:
+        results['setWebhook'] = {'ok': False, 'error': 'no base URL available'}
+
+    return {'ok': True, 'results': results}

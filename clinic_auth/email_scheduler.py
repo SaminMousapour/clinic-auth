@@ -71,20 +71,19 @@ def start_email_scheduler():
     _scheduler = sched
     logger.info('Email scheduler started (10 PM clinic-time batch + 5-min medication reminders).')
 
-    # Register the Telegram webhook pointing at this deployment, if the bot is configured.
-    from accounts.telegram import bot_enabled, set_webhook, webhook_url
+    # Configure the ClinicOS Telegram bot (name, bio, commands, webhook) if a
+    # token is configured. Idempotent; runs each start.
+    from accounts.telegram import bot_enabled, configure_bot, webhook_url
     if bot_enabled():
-        url = webhook_url()
-        if not url:
-            # Cannot compute the public base from settings alone: try the first
-            # allowed host, otherwise defer (set_webhook also runs on connect).
-            hosts = [h for h in list(getattr(settings, 'ALLOWED_HOSTS', [])) if h not in ('*', 'healthcheck.railway.app')]
-            if hosts:
-                url = f'https://{hosts[0]}/telegram/webhook/{settings.TELEGRAM_WEBHOOK_SECRET}/'
-        if url:
-            res = set_webhook(url)
-            logger.info('Telegram webhook registration %s (%s)', res.get('ok'), res.get('error', 'ok'))
-        else:
-            logger.warning('Telegram webhook URL could not be determined; users can still connect via the site link.')
+        try:
+            url = webhook_url()
+            if not url:
+                hosts = [h for h in list(getattr(settings, 'ALLOWED_HOSTS', [])) if h not in ('*', 'healthcheck.railway.app')]
+                if hosts:
+                    url = f'https://{hosts[0]}/telegram/webhook/{settings.TELEGRAM_WEBHOOK_SECRET}/'
+            res = configure_bot(base_url=url)
+            logger.info('Telegram bot configuration: %s', res.get('results', res))
+        except Exception as e:
+            logger.warning('Telegram bot configuration failed: %s', e)
 
     return _scheduler

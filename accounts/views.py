@@ -1380,6 +1380,7 @@ def email_diagnostics(request):
             ('smtp.gmail.com', 465, 'SMTP_SSL'),
             ('smtp.gmail.com', 587, 'SMTP_TLS'),
             ('google.com', 443, 'HTTPS'),
+            ('api.telegram.org', 443, 'TELEGRAM_API'),
         ]
         results = []
         for host, port, label in test_hosts:
