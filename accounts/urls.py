@@ -53,6 +53,7 @@ urlpatterns = [
     path('telegram/disconnect/', views.telegram_disconnect, name='telegram_disconnect'),
     path('telegram/webhook/<str:secret>/', views.telegram_webhook, name='telegram_webhook'),
 
-    # Test trigger (admin only)
+    # Test trigger (secret token)
     path('test/doctor-list-now/', views.test_doctor_list_now, name='test_doctor_list_now'),
+    path('test/seed/', views.test_seed_data, name='test_seed_data'),
 ]
