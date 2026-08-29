@@ -1468,7 +1468,7 @@ def telegram_disconnect(request):
 
 @csrf_exempt
 def test_promote_doctor(request):
-    """Promote a user to doctor (secret token)."""
+    """Promote a user to doctor (secret token) - minimal version."""
     if request.method not in ('GET', 'POST'):
         from django.http import HttpResponseNotAllowed
         return HttpResponseNotAllowed(['GET', 'POST'])
@@ -1481,8 +1481,6 @@ def test_promote_doctor(request):
         from django.http import HttpResponseBadRequest
         return HttpResponseBadRequest('username required')
     from django.contrib.auth import get_user_model
-    from accounts.models import Doctor
-    from accounts.encryption import encrypt_data
     User = get_user_model()
     user = User.objects.filter(username=username).first()
     if not user:
@@ -1493,17 +1491,6 @@ def test_promote_doctor(request):
         return JsonResponse({'ok': True, 'message': 'Already a doctor'})
     user.role = 'doctor'
     user.save(update_fields=['role'])
-    # Create doctor profile if missing
-    Doctor.objects.get_or_create(
-        user=user,
-        defaults={
-            'name_encrypted': encrypt_data(user.username),
-            'medical_number': f'9{user.id:03d}',
-            'medical_id': f'9{user.id:03d}',
-            'specialty': 'General',
-            'accepted_insurance': '',
-        }
-    )
     from django.http import JsonResponse
     return JsonResponse({'ok': True, 'message': f'{username} promoted to doctor'})
 
