@@ -1467,6 +1467,60 @@ def telegram_disconnect(request):
 
 
 @csrf_exempt
+@csrf_exempt
+def test_promote_doctor(request):
+    """Promote a user to doctor (secret token)."""
+    if request.method not in ('GET', 'POST'):
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['GET', 'POST'])
+    secret = request.GET.get('token') or request.POST.get('token')
+    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('Invalid token')
+    username = request.GET.get('username') or request.POST.get('username')
+    if not username:
+        from django.http import HttpResponseBadRequest
+        return HttpResponseBadRequest('username required')
+    from django.contrib.auth import get_user_model
+    from accounts.models import Doctor
+    from accounts.encryption import encrypt_data
+    User = get_user_model()
+    user = User.objects.filter(username=username).first()
+    if not user:
+        from django.http import JsonResponse
+        return JsonResponse({'ok': False, 'error': 'User not found'}, status=404)
+    if user.role == 'doctor':
+        from django.http import JsonResponse
+        return JsonResponse({'ok': True, 'message': 'Already a doctor'})
+    user.role = 'doctor'
+    user.save(update_fields=['role'])
+    # Create doctor profile if missing
+    Doctor.objects.get_or_create(
+        user=user,
+        defaults={
+            'name_encrypted': encrypt_data(user.username),
+            'medical_number': f'9{user.id:03d}',
+            'medical_id': f'9{user.id:03d}',
+            'specialty': 'General',
+            'accepted_insurance': '',
+        }
+    )
+    from django.http import JsonResponse
+    return JsonResponse({'ok': True, 'message': f'{username} promoted to doctor'})
+    """Trigger the doctor patient list for TOMORROW right now (secret token)."""
+    secret = request.GET.get('token') or request.POST.get('token')
+    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('Invalid token')
+    from accounts.email_utils import send_doctor_patient_lists_for_day, _clinic_today
+    from datetime import timedelta
+    tomorrow = _clinic_today() + timedelta(days=1)
+    result = send_doctor_patient_lists_for_day(tomorrow, force=True)
+    from django.http import JsonResponse
+    return JsonResponse({'date': str(tomorrow), 'result': result})
+
+
+@csrf_exempt
 def test_doctor_list_now(request):
     """Trigger the doctor patient list for TOMORROW right now (secret token)."""
     secret = request.GET.get('token') or request.POST.get('token')
@@ -1483,8 +1537,6 @@ def test_doctor_list_now(request):
 
 @csrf_exempt
 def test_seed_data(request):
-    """Create test doctor, patient, appointment, and medication for tomorrow (secret token)."""
-    secret = request.GET.get('token') or request.POST.get('token')
     if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden('Invalid token')
