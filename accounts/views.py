@@ -1571,7 +1571,7 @@ def test_bot_link(request):
         from django.http import JsonResponse
         return JsonResponse({'ok': False, 'error': 'user not found'}, status=404)
     if request.GET.get('clear') == '1' or request.POST.get('clear') == '1':
-        user.telegram_link_token = ''
+        user.telegram_link_token = None
         user.telegram_chat_id = ''
         user.save(update_fields=['telegram_link_token', 'telegram_chat_id'])
         return JsonResponse({'ok': True, 'cleared': True, 'username': username})
