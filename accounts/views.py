@@ -1619,14 +1619,21 @@ def test_seed_data(request):
     from datetime import datetime
     now = datetime.now(_clinic_tz())
     med_time = (now + timedelta(minutes=5)).strftime('%H:%M')
-    med = Medication.objects.create(
+    med_hour, med_minute = map(int, med_time.split(':'))
+    med = Medication(
         patient=patient,
-        name='Aspirin',
-        dosage='100mg',
+        time=datetime.strptime(med_time, '%H:%M').time(),
         times_of_day=med_time,
+        times_per_day=1,
         days_of_week=','.join(['monday','tuesday','wednesday','thursday','friday','saturday','sunday']),
-        is_active=True,
+        hour=med_hour,
+        day=tomorrow.day,
+        month=tomorrow.month,
+        year=tomorrow.year,
     )
+    med.name = 'Aspirin'
+    med.dosage = '100mg'
+    med.save()
 
     from django.http import JsonResponse
     return JsonResponse({
