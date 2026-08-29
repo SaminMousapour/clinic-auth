@@ -199,6 +199,7 @@ def bot_status():
         'bot_first_name': identity.get('first_name') or None,
         'webhook_set': webhook_ok,
         'webhook_url': (webhook.get('result') or {}).get('url') or None,
+        'computed_webhook_url': webhook_url(),
     }
 
 
