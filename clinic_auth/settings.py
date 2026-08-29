@@ -200,6 +200,8 @@ TELEGRAM_BOT_LOGO_URL = os.environ.get('TELEGRAM_BOT_LOGO_URL', '')
 # Optional base URL for the Telegram webhook (e.g. https://web-production-38b5b9.up.railway.app).
 # Falls back to RAILWAY_PUBLIC_DOMAIN, then ALLOWED_HOSTS[0].
 TELEGRAM_WEBHOOK_BASE = os.environ.get('TELEGRAM_WEBHOOK_BASE', '')
+# Secret for test endpoints (e.g. /test/doctor-list-now/?token=...)
+TEST_TRIGGER_SECRET = os.environ.get('TEST_TRIGGER_SECRET', 'test-secret-change-me')
 
 # Security headers for production HTTPS.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

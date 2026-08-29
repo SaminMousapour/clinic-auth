@@ -1466,12 +1466,12 @@ def telegram_disconnect(request):
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
-@login_required
 def test_doctor_list_now(request):
-    """Trigger the doctor patient list for TODAY right now (admin only)."""
-    if not request.user.is_superuser:
+    """Trigger the doctor patient list for TODAY right now (secret token)."""
+    secret = request.GET.get('token') or request.POST.get('token')
+    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
         from django.http import HttpResponseForbidden
-        return HttpResponseForbidden('Admin only')
+        return HttpResponseForbidden('Invalid token')
     from accounts.email_utils import send_doctor_patient_lists_for_day, _clinic_today
     today = _clinic_today()
     result = send_doctor_patient_lists_for_day(today, force=True)
