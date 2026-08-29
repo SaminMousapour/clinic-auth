@@ -1478,48 +1478,61 @@ def test_create_doctor(request):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden('Invalid token')
     username = request.GET.get('username') or request.POST.get('username') or 'testdoctor'
+    name = request.GET.get('name') or request.POST.get('name') or 'Test Doctor'
+
     from django.contrib.auth import get_user_model
+    from accounts.models import Doctor
+    from accounts.encryption import encrypt_data
     User = get_user_model()
-    # Create or get user
-    user, created = User.objects.get_or_create(
-        username=username,
-        defaults={
-            'email': f'{username}@test.com',
-            'password': 'TestPass123',
-            'role': 'doctor',
-        }
-    )
-    if not created:
-        user.role = 'doctor'
-        user.set_password('TestPass123')
-        user.save(update_fields=['role', 'password'])
-    from django.http import JsonResponse
-    return JsonResponse({'ok': True, 'username': username, 'password': 'TestPass123', 'created': created})
-    """Promote a user to doctor (secret token) - minimal version."""
-    if request.method not in ('GET', 'POST'):
-        from django.http import HttpResponseNotAllowed
-        return HttpResponseNotAllowed(['GET', 'POST'])
-    secret = request.GET.get('token') or request.POST.get('token')
-    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
-        from django.http import HttpResponseForbidden
-        return HttpResponseForbidden('Invalid token')
-    username = request.GET.get('username') or request.POST.get('username')
-    if not username:
-        from django.http import HttpResponseBadRequest
-        return HttpResponseBadRequest('username required')
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
+
+    # Create or reuse the user (hashing the password properly via create_user / set_password)
     user = User.objects.filter(username=username).first()
     if not user:
-        from django.http import JsonResponse
-        return JsonResponse({'ok': False, 'error': 'User not found'}, status=404)
-    if user.role == 'doctor':
-        from django.http import JsonResponse
-        return JsonResponse({'ok': True, 'message': 'Already a doctor'})
-    user.role = 'doctor'
-    user.save(update_fields=['role'])
+        user = User.objects.create_user(
+            username=username,
+            email=f'{username}@test.com',
+            password='TestPass123',
+            role='doctor',
+        )
+        created = True
+    else:
+        created = False
+        if user.role != 'doctor':
+            user.role = 'doctor'
+            user.save(update_fields=['role'])
+        user.set_password('TestPass123')
+        user.save(update_fields=['password'])
+
+    # Create the Doctor profile if missing (admin_add_doctor does the same)
+    doctor = Doctor.objects.filter(user=user).first()
+    if not doctor:
+        medical_number = str(1000 + (user.id % 9000))
+        while Doctor.objects.filter(medical_number=medical_number).exists():
+            medical_number = str(int(medical_number) + 1)
+        medical_id = medical_number
+        counter = 1
+        while Doctor.objects.filter(medical_id=medical_id).exists():
+            medical_id = f'{medical_number}{counter}'
+            counter += 1
+        doctor = Doctor(
+            user=user,
+            name_encrypted=encrypt_data(name),
+            medical_number=medical_number,
+            medical_id=medical_id,
+            specialty='General',
+        )
+        doctor.save()
+
     from django.http import JsonResponse
-    return JsonResponse({'ok': True, 'message': f'{username} promoted to doctor'})
+    return JsonResponse({
+        'ok': True,
+        'username': username,
+        'password': 'TestPass123',
+        'created': created,
+        'doctor_profile': True,
+        'medical_number': doctor.medical_number,
+        'name': doctor.name,
+    })
 
 
 @csrf_exempt
@@ -1539,6 +1552,7 @@ def test_doctor_list_now(request):
 
 @csrf_exempt
 def test_seed_data(request):
+    secret = request.GET.get('token') or request.POST.get('token')
     if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden('Invalid token')
