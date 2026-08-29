@@ -1468,24 +1468,17 @@ def telegram_disconnect(request):
 
 
 @csrf_exempt
-def test_create_doctor(request):
-    """Create a test doctor user directly (secret token)."""
-    if request.method not in ('GET', 'POST'):
-        from django.http import HttpResponseNotAllowed
-        return HttpResponseNotAllowed(['GET', 'POST'])
-    secret = request.GET.get('token') or request.POST.get('token')
-    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
-        from django.http import HttpResponseForbidden
-        return HttpResponseForbidden('Invalid token')
-    username = request.GET.get('username') or request.POST.get('username') or 'testdoctor'
-    name = request.GET.get('name') or request.POST.get('name') or 'Test Doctor'
-
+def _ensure_test_doctor(username='max', name='Max Doctor'):
+    """
+    Create (or repair) a test doctor: User with role 'doctor' (hashed password)
+    AND a Doctor profile, exactly like the admin flow does.
+    Returns (user, doctor, created_user).
+    """
     from django.contrib.auth import get_user_model
     from accounts.models import Doctor
     from accounts.encryption import encrypt_data
     User = get_user_model()
 
-    # Create or reuse the user (hashing the password properly via create_user / set_password)
     user = User.objects.filter(username=username).first()
     if not user:
         user = User.objects.create_user(
@@ -1494,16 +1487,16 @@ def test_create_doctor(request):
             password='TestPass123',
             role='doctor',
         )
-        created = True
+        created_user = True
     else:
-        created = False
+        created_user = False
         if user.role != 'doctor':
             user.role = 'doctor'
             user.save(update_fields=['role'])
-        user.set_password('TestPass123')
-        user.save(update_fields=['password'])
+        if not user.password.startswith('pbkdf2_') and not user.password.startswith('argon2'):
+            user.set_password('TestPass123')
+            user.save(update_fields=['password'])
 
-    # Create the Doctor profile if missing (admin_add_doctor does the same)
     doctor = Doctor.objects.filter(user=user).first()
     if not doctor:
         medical_number = str(1000 + (user.id % 9000))
@@ -1522,7 +1515,27 @@ def test_create_doctor(request):
             specialty='General',
         )
         doctor.save()
+    else:
+        doctor.name = name
+        doctor.specialty = doctor.specialty or 'General'
+        doctor.save()
 
+    return user, doctor, created_user
+
+
+@csrf_exempt
+def test_create_doctor(request):
+    """Create a test doctor user directly (secret token)."""
+    if request.method not in ('GET', 'POST'):
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['GET', 'POST'])
+    secret = request.GET.get('token') or request.POST.get('token')
+    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('Invalid token')
+    username = request.GET.get('username') or request.POST.get('username') or 'testdoctor'
+    name = request.GET.get('name') or request.POST.get('name') or 'Test Doctor'
+    user, doctor, created = _ensure_test_doctor(username, name)
     from django.http import JsonResponse
     return JsonResponse({
         'ok': True,
@@ -1601,6 +1614,7 @@ def test_seed_data(request):
 
     # Appointment for TOMORROW
     tomorrow = date.today() + timedelta(days=1)
+    Appointment.objects.filter(doctor=doctor, patient=patient, patient_name='Ali Ahmadi').delete()
     appt = Appointment.objects.create(
         doctor=doctor,
         patient=patient,
@@ -1635,11 +1649,13 @@ def test_seed_data(request):
     med.dosage = '100mg'
     med.save()
 
-    # Book an appointment for the "max" doctor too, if that profile exists
+    # Ensure the "max" doctor exists (user + Doctor profile), then book his appointments
     max_appt = None
     max_today_appt = None
+    _ensure_test_doctor('max', 'Max Doctor')
     max_doctor = Doctor.objects.filter(user__username='max').first()
     if max_doctor:
+        Appointment.objects.filter(doctor=max_doctor, patient=patient, patient_name='Ali Ahmadi').delete()
         max_appt = Appointment.objects.create(
             doctor=max_doctor,
             patient=patient,
