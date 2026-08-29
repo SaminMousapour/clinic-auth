@@ -98,7 +98,24 @@ WSGI_APPLICATION = 'clinic_auth.wsgi.application'
 # PostgreSQL in production (DATABASE_URL), SQLite for local development.
 if os.environ.get('DATABASE_URL'):
     import dj_database_url
-    DATABASES = {'default': dj_database_url.config(conn_max_age=0)}
+    _dj_url = os.environ.get('DATABASE_URL', '')
+    try:
+        _db_config = dj_database_url.parse(_dj_url)
+        if not _db_config.get('NAME'):
+            # Railway's default database is named 'railway'; tolerate a URL
+            # that omits the trailing '/railway' path segment.
+            if '+postgres' in _dj_url or _dj_url.startswith('postgres'):
+                _db_config['NAME'] = 'railway'
+        DATABASES = {'default': _db_config}
+    except Exception:
+        import warnings
+        warnings.warn('DATABASE_URL could not be parsed; falling back to SQLite.')
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 else:
     DATABASES = {
         'default': {
