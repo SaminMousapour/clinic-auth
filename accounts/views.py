@@ -1364,9 +1364,12 @@ def email_diagnostics(request):
         'maileroo_key_set': bool(settings.MAILEROO_API_KEY),
         'delivery': 'MAILEROO_HTTPS_API' if settings.MAILEROO_API_KEY else 'DJANGO_BACKEND(via SMTP/console)',
         'sms': None,
+        'telegram': None,
     }
     from accounts.sms import sms_provider_status
     config['sms'] = sms_provider_status()
+    from accounts.telegram import bot_status
+    config['telegram'] = bot_status()
 
     import json
     from django.http import JsonResponse
@@ -1398,3 +1401,65 @@ def email_diagnostics(request):
         return JsonResponse({'config': config, 'email_log': log_keys, 'tcp_probe': results})
 
     return JsonResponse({'config': config, 'email_log': log_keys})
+
+
+@csrf_exempt
+def telegram_webhook(request, secret=None):
+    """Telegram pushes updates here. Sends them to accounts/telegram.handle_update()."""
+    from django.conf import settings
+    from django.http import JsonResponse
+    from accounts.telegram import bot_enabled, handle_update
+    try:
+        from django.utils.encoding import force_str
+    except ImportError:
+        force_str = str
+
+    if not bot_enabled():
+        return JsonResponse({'ok': False, 'error': 'bot not configured'}, status=503)
+    if secret != settings.TELEGRAM_WEBHOOK_SECRET:
+        return JsonResponse({'ok': False, 'error': 'bad secret'}, status=403)
+
+    try:
+        raw = request.body
+        update = json.loads(raw.decode('utf-8'))
+    except Exception:
+        return JsonResponse({'ok': False, 'error': 'invalid json'}, status=400)
+
+    result = handle_update(update)
+    return JsonResponse({'ok': True, 'result': result})
+
+
+@login_required
+def telegram_connect(request):
+    """Generate a fresh deep link so the logged-in user can connect their Telegram."""
+    from django.conf import settings
+    from accounts.telegram import generate_link_token, bot_link, bot_enabled, webhook_url
+
+    if not bot_enabled():
+        messages.error(request, 'The ClinicOS Telegram bot is not configured yet.')
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    token = generate_link_token(request.user)
+    link = bot_link(token)
+    if not link:
+        messages.error(request, 'Telegram bot username is not configured on the server.')
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    # Refresh webhook so Telegram always points at this deploy's URL.
+    from accounts.telegram import set_webhook
+    try:
+        set_webhook(webhook_url(request))
+    except Exception as e:
+        logger.warning('telegram_connect set_webhook failed: %s', e)
+
+    # Take the user straight to Telegram so the /start <token> lands on the bot.
+    return redirect(link)
+
+
+@login_required
+def telegram_disconnect(request):
+    """Remove the Telegram chat binding for the current user."""
+    request.user.telegram_chat_id = ''
+    request.user.save(update_fields=['telegram_chat_id'])
+    messages.info(request, 'Your Telegram was disconnected.')
+    return redirect(request.META.get('HTTP_REFERER', '/'))

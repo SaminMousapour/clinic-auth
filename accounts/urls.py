@@ -47,4 +47,9 @@ urlpatterns = [
 
     # Diagnostics (read-only)
     path('__email_diagnostics/', views.email_diagnostics, name='email_diagnostics'),
+
+    # Telegram bot
+    path('telegram/connect/', views.telegram_connect, name='telegram_connect'),
+    path('telegram/disconnect/', views.telegram_disconnect, name='telegram_disconnect'),
+    path('telegram/webhook/<str:secret>/', views.telegram_webhook, name='telegram_webhook'),
 ]

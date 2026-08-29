@@ -45,6 +45,23 @@ def _sms_reminder(phone, message, key):
     return result
 
 
+def _tg_reminder(user, message, key):
+    """
+    Best-effort Telegram reminder via the ClinicOS bot.
+    Only sends if the user linked their Telegram account (telegram_chat_id set).
+    Dedup via EmailLog so a user gets a given reminder once.
+    """
+    if not user or not getattr(user, 'telegram_chat_id', ''):
+        return {'ok': False, 'detail': 'no telegram linked'}
+    from accounts.telegram import send_message
+    if _already_sent(key):
+        return {'ok': False, 'detail': 'already sent'}
+    result = send_message(user.telegram_chat_id, message)
+    if result.get('ok'):
+        _mark_sent(key)
+    return result
+
+
 def send_appointment_reminder_email(appointment):
     """
     Send appointment reminder email to patient one day before appointment.
@@ -195,6 +212,14 @@ The ClinicOS Team
         f"{appointment_date.strftime('%b %d')} {appointment_time}."
     )
     _sms_reminder(patient.phone, sms_text, f'sms-appt-{appointment.id}')
+    # Also send via Telegram bot when the patient linked their account.
+    tg_text = (
+        f"📅 ClinicOS: appointment reminder\n\n"
+        f"Dr. {doctor_name} ({doctor_specialty})\n"
+        f"Tomorrow {appointment_date.strftime('%A, %b %d')} at {appointment_time}"
+        + (f"\nReason: {appointment.reason}" if appointment.reason else "")
+    )
+    _tg_reminder(patient.user, tg_text, f'tg-appt-{appointment.id}')
     if ok:
         return True
     print(f"Failed to send appointment reminder email to {patient_email}")
@@ -331,6 +356,9 @@ The ClinicOS Team
     time_key = (reminder_time or datetime.now(_clinic_tz())).strftime('%Y-%m-%d-%H:%M')
     sms_text = f"ClinicOS: medication reminder - take {med_name} ({dosage})."
     _sms_reminder(patient.phone, sms_text, f'sms-med-{medication.id}-{time_key}')
+    # Also send via Telegram bot when the patient linked their account.
+    tg_text = f"💊 ClinicOS: time to take your medication\n\n{med_name} ({dosage})"
+    _tg_reminder(patient.user, tg_text, f'tg-med-{medication.id}-{time_key}')
     if ok:
         return True
     print(f"Failed to send medication reminder email to {patient.email}")
@@ -577,6 +605,14 @@ ClinicOS
         else:
             print(f"Failed to send doctor patient list email to Dr. {doctor.name}")
             failed_count += 1
+
+        # Also send a Telegram copy to the doctor's linked account.
+        tg_text = (
+            f"👨‍⚕️ ClinicOS: your patient list for {day_date.strftime('%A, %b %d, %Y')}\n\n"
+            f"{patient_list_text}\n\n"
+            f"Total: {len(appointments_list)} patient(s)"
+        )
+        _tg_reminder(doctor.user, tg_text, f'tg-dr-list-{doctor.id}-{day_date.isoformat()}')
 
     return {
         'total': len(doctor_appointments),

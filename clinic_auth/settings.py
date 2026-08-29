@@ -184,6 +184,23 @@ KAVENEGAR_SENDER = os.environ.get('KAVENEGAR_SENDER', '')
 SMSIR_API_KEY = os.environ.get('SMSIR_API_KEY', '')
 SMSIR_SENDER = os.environ.get('SMSIR_SENDER', '')
 
+# ---------------------------------------------------------------------------
+# Telegram bot (free worldwide text channel).
+# Create the bot via @BotFather (https://t.me/BotFather), then set in Railway:
+#   TELEGRAM_BOT_TOKEN     = the token BotFather gives you (123456:ABC...)
+#   TELEGRAM_BOT_USERNAME  = bot username without '@' (e.g. ClinicOSBot)
+# The bot delivers the same reminders as email: patients get medication +
+# appointment reminders, doctors get their patient list at 10 PM.
+# ---------------------------------------------------------------------------
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_BOT_USERNAME = os.environ.get('TELEGRAM_BOT_USERNAME', '')
+TELEGRAM_WEBHOOK_SECRET = os.environ.get('TELEGRAM_WEBHOOK_SECRET', '').strip() or 'clinicostelegramwebhook'
+TELEGRAM_BOT_NAME = os.environ.get('TELEGRAM_BOT_NAME', 'ClinicOS')
+TELEGRAM_BOT_LOGO_URL = os.environ.get('TELEGRAM_BOT_LOGO_URL', '')
+# Optional base URL for the Telegram webhook (e.g. https://web-production-38b5b9.up.railway.app).
+# Falls back to RAILWAY_PUBLIC_DOMAIN, then ALLOWED_HOSTS[0].
+TELEGRAM_WEBHOOK_BASE = os.environ.get('TELEGRAM_WEBHOOK_BASE', '')
+
 # Security headers for production HTTPS.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = env_bool('DJANGO_SESSION_COOKIE_SECURE', not DEBUG)
