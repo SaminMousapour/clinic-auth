@@ -517,12 +517,14 @@ def send_doctor_patient_lists_for_day(day_date, force=False):
     skipped_no_email = 0
 
     for doctor, appointments_list in doctor_appointments.items():
-        if not doctor.user.email:
-            skipped_no_email += 1
-            continue
-
         key = f'dr-list-{doctor.id}-{day_date.isoformat()}'
         if not force and _already_sent(key):
+            continue
+
+        has_email = bool(doctor.user.email)
+        has_tg = bool(getattr(doctor.user, 'telegram_chat_id', ''))
+        if not has_email and not has_tg:
+            skipped_no_email += 1
             continue
 
         subject = f'Patient List for {day_date.strftime("%B %d, %Y")} - Dr. {doctor.name}'
@@ -594,25 +596,30 @@ ClinicOS
 </html>
 """
 
-        if _deliver(
-                doctor.user.email,
-                subject,
-                message,
-                html_message,
-            ):
-            _mark_sent(key)
-            sent_count += 1
-        else:
-            print(f"Failed to send doctor patient list email to Dr. {doctor.name}")
-            failed_count += 1
+        email_sent = False
+        if has_email:
+            if _deliver(
+                    doctor.user.email,
+                    subject,
+                    message,
+                    html_message,
+                ):
+                _mark_sent(key)
+                sent_count += 1
+                email_sent = True
+            else:
+                print(f"Failed to send doctor patient list email to Dr. {doctor.name}")
+                failed_count += 1
 
-        # Also send a Telegram copy to the doctor's linked account.
+        # Also send a Telegram copy to the doctor's linked account (email optional).
         tg_text = (
             f"👨‍⚕️ ClinicOS: your patient list for {day_date.strftime('%A, %b %d, %Y')}\n\n"
             f"{patient_list_text}\n\n"
             f"Total: {len(appointments_list)} patient(s)"
         )
-        _tg_reminder(doctor.user, tg_text, f'tg-dr-list-{doctor.id}-{day_date.isoformat()}')
+        tg_result = _tg_reminder(doctor.user, tg_text, f'tg-dr-list-{doctor.id}-{day_date.isoformat()}')
+        if tg_result.get('ok') and not email_sent:
+            sent_count += 1
 
     return {
         'total': len(doctor_appointments),
