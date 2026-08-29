@@ -1467,7 +1467,6 @@ def telegram_disconnect(request):
 
 
 @csrf_exempt
-@csrf_exempt
 def test_promote_doctor(request):
     """Promote a user to doctor (secret token)."""
     if request.method not in ('GET', 'POST'):
@@ -1507,17 +1506,6 @@ def test_promote_doctor(request):
     )
     from django.http import JsonResponse
     return JsonResponse({'ok': True, 'message': f'{username} promoted to doctor'})
-    """Trigger the doctor patient list for TOMORROW right now (secret token)."""
-    secret = request.GET.get('token') or request.POST.get('token')
-    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
-        from django.http import HttpResponseForbidden
-        return HttpResponseForbidden('Invalid token')
-    from accounts.email_utils import send_doctor_patient_lists_for_day, _clinic_today
-    from datetime import timedelta
-    tomorrow = _clinic_today() + timedelta(days=1)
-    result = send_doctor_patient_lists_for_day(tomorrow, force=True)
-    from django.http import JsonResponse
-    return JsonResponse({'date': str(tomorrow), 'result': result})
 
 
 @csrf_exempt
