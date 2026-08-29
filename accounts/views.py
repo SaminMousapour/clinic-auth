@@ -1650,6 +1650,7 @@ def test_database_view(request):
         users.append({
             'id': u.id, 'username': u.username, 'role': u.role,
             'staff': u.is_staff, 'tg_linked': bool(u.telegram_chat_id),
+            'tg_chat_id': u.telegram_chat_id,
             'patient': pat_name, 'doctor': doc_name,
         })
 
@@ -1671,12 +1672,17 @@ def test_database_view(request):
             docname = a.doctor.name
         except Exception:
             docu = f"doc#{a.doctor_id}"; docname = '?'
+        try:
+            patu = a.patient.user.username if a.patient.user_id else None
+        except Exception:
+            patu = None
         appointments.append({
             'id': a.id,
             'date': f"{a.year}-{a.month:02d}-{a.day:02d}",
             'time': f"{a.hour:02d}:{a.minute:02d}",
             'doctor_username': docu, 'doctor_name': docname,
             'patient_name': a.patient_name, 'patient_phone': a.patient_phone,
+            'patient_user': patu,
             'reason': a.reason, 'cancelled': a.is_cancelled,
         })
         if len(appointments) >= 30:

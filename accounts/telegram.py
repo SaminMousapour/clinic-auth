@@ -127,6 +127,7 @@ _NO_SLASH_COMMANDS = {
     'next': '/next',
     'today': '/today', 'list': '/today', 'patients': '/today',
     'tomorrow': '/tomorrow',
+    'upcoming': '/upcoming', 'schedule': '/upcoming', 'calendar': '/upcoming',
 }
 
 
@@ -153,6 +154,7 @@ def _welcome_for(user):
             f"Commands:\n"
             f"• /today — today's patient list\n"
             f"• /tomorrow — tomorrow's patient list\n"
+            f"• /upcoming — all your upcoming appointments\n"
             f"• /appointments — your upcoming schedule\n"
             f"• /help — show this message"
         )
@@ -162,6 +164,7 @@ def _welcome_for(user):
             f"Commands:\n"
             f"• /today — today's clinic-wide appointment list\n"
             f"• /tomorrow — tomorrow's clinic-wide appointment list\n"
+            f"• /upcoming — all upcoming appointments\n"
             f"• /appointments — upcoming appointments\n"
             f"• /help — show this message"
         )
@@ -184,6 +187,7 @@ def _help_for(user):
             "ClinicOS Doctor Commands:\n"
             "• /today — today's patient list\n"
             "• /tomorrow — tomorrow's patient list\n"
+            "• /upcoming — all your upcoming appointments\n"
             "• /appointments — your upcoming schedule\n"
             "• /help — show this message\n\n"
             "Every day at 10 PM you'll also receive tomorrow's patient list automatically."
@@ -193,6 +197,7 @@ def _help_for(user):
             "ClinicOS Admin Commands:\n"
             "• /today — today's clinic-wide appointments\n"
             "• /tomorrow — tomorrow's clinic-wide appointments\n"
+            "• /upcoming — all upcoming appointments\n"
             "• /appointments — upcoming appointments\n"
             "• /help — show this message"
         )
@@ -421,7 +426,7 @@ def handle_update(update):
         return {'ok': True, 'action': 'list_sent'}
 
     # ---------------- Shared: upcoming appointments (doctor schedule or patient) ----------------
-    if cmd == '/appointments':
+    if cmd in ('/appointments', '/upcoming'):
         user = _linked_user(chat_id)
         if not user:
             send_message(chat_id, 'Your Telegram is not connected to a ClinicOS account. Use the Connect button on the website.')
@@ -445,9 +450,33 @@ def handle_update(update):
         upcoming = _upcoming_appointments(qs.filter(is_cancelled=False), today)
 
         if not upcoming:
-            send_message(chat_id, 'You have no upcoming appointments on your schedule.')
+            role_hint = {
+                'doctor': 'Send /today or /tomorrow for the patient list.',
+                'admin': 'Send /today or /tomorrow for the clinic list.',
+            }.get(user.role, '')
+            send_message(chat_id, f'You have no upcoming appointments on your schedule.{(" " + role_hint) if role_hint else ""}')
             return {'ok': True, 'action': 'empty_appointments'}
-        lines = ["📅 Upcoming appointments:"] + [_format_appointment(a) for a in upcoming[:6]]
+
+        recent = upcoming[:6]
+        if user.role == 'doctor':
+            lines = ["📅 Your upcoming appointments:"]
+            for a in recent:
+                lines.append(
+                    f"• {date(a.year, a.month, a.day).strftime('%a, %b %d')} "
+                    f"{a.hour:02d}:{a.minute:02d} — {_format_patient_line(a)}"
+                )
+            more = len(upcoming) - len(recent)
+            if more > 0:
+                lines.append(f"\n…and {more} more.")
+        elif is_admin:
+            lines = ["📅 Clinic-wide upcoming appointments:"]
+            for a in recent:
+                lines.append(
+                    f"• {date(a.year, a.month, a.day).strftime('%a, %b %d')} "
+                    f"{a.hour:02d}:{a.minute:02d} — Dr. {a.doctor.name}: {_format_patient_line(a)}"
+                )
+        else:
+            lines = ["📅 Your upcoming appointments:"] + [_format_appointment(a) for a in recent]
         send_message(chat_id, "\n".join(lines))
         return {'ok': True, 'action': 'appointments_sent'}
 
@@ -508,6 +537,7 @@ BOT_COMMANDS = [
     ('help', 'Show your commands'),
     ('medications', 'Your medication schedule (patients)'),
     ('appointments', 'Upcoming appointments'),
+    ('upcoming', "All upcoming appointments (doctors/admin)"),
     ('next', 'Your next appointment (patients)'),
     ('today', "Today's patient list (doctors)"),
     ('tomorrow', "Tomorrow's patient list (doctors)"),

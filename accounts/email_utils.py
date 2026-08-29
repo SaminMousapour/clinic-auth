@@ -200,6 +200,16 @@ The ClinicOS Team
 </html>
 """
     
+    # Telegram first — fast and reliable, so the reminder arrives on time even
+    # if the email provider is slow or down. Email afterwards is best-effort.
+    tg_text = (
+        f"📅 ClinicOS: appointment reminder\n\n"
+        f"Dr. {doctor_name} ({doctor_specialty})\n"
+        f"Tomorrow {appointment_date.strftime('%A, %b %d')} at {appointment_time}"
+        + (f"\nReason: {appointment.reason}" if appointment.reason else "")
+    )
+    tg_ok = bool(_tg_reminder(patient.user, tg_text, f'tg-appt-{appointment.id}').get('ok'))
+
     ok = _deliver(
         patient_email,
         subject,
@@ -212,15 +222,7 @@ The ClinicOS Team
         f"{appointment_date.strftime('%b %d')} {appointment_time}."
     )
     _sms_reminder(patient.phone, sms_text, f'sms-appt-{appointment.id}')
-    # Also send via Telegram bot when the patient linked their account.
-    tg_text = (
-        f"📅 ClinicOS: appointment reminder\n\n"
-        f"Dr. {doctor_name} ({doctor_specialty})\n"
-        f"Tomorrow {appointment_date.strftime('%A, %b %d')} at {appointment_time}"
-        + (f"\nReason: {appointment.reason}" if appointment.reason else "")
-    )
-    _tg_reminder(patient.user, tg_text, f'tg-appt-{appointment.id}')
-    if ok:
+    if ok or tg_ok:
         return True
     print(f"Failed to send appointment reminder email to {patient_email}")
     return False
@@ -346,6 +348,12 @@ The ClinicOS Team
 </html>
 """
     
+    # Telegram first — fast and reliable, so the reminder arrives on time even
+    # if the email provider is slow or down. Email afterwards is best-effort.
+    time_key = (reminder_time or datetime.now(_clinic_tz())).strftime('%Y-%m-%d-%H:%M')
+    tg_text = f"💊 ClinicOS: time to take your medication\n\n{med_name} ({dosage})"
+    tg_ok = bool(_tg_reminder(patient.user, tg_text, f'tg-med-{medication.id}-{time_key}').get('ok'))
+
     ok = _deliver(
         patient.email,
         subject,
@@ -353,13 +361,9 @@ The ClinicOS Team
         html_message,
     )
     # Also send an SMS when SMS notifications are configured (email stays primary).
-    time_key = (reminder_time or datetime.now(_clinic_tz())).strftime('%Y-%m-%d-%H:%M')
     sms_text = f"ClinicOS: medication reminder - take {med_name} ({dosage})."
     _sms_reminder(patient.phone, sms_text, f'sms-med-{medication.id}-{time_key}')
-    # Also send via Telegram bot when the patient linked their account.
-    tg_text = f"💊 ClinicOS: time to take your medication\n\n{med_name} ({dosage})"
-    _tg_reminder(patient.user, tg_text, f'tg-med-{medication.id}-{time_key}')
-    if ok:
+    if ok or tg_ok:
         return True
     print(f"Failed to send medication reminder email to {patient.email}")
     return False
