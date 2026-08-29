@@ -1549,6 +1549,39 @@ def test_create_doctor(request):
 
 
 @csrf_exempt
+def test_bot_link(request):
+    """
+    Generate (or clear) the Telegram deep link for a username — mirrors what the
+    dashboard Connect button does, without needing a browser session.
+    ?username=X&clear=1  clears token+chat_id for that user.
+    """
+    secret = request.GET.get('token') or request.POST.get('token')
+    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('Invalid token')
+    username = request.GET.get('username') or request.POST.get('username')
+    if not username:
+        from django.http import HttpResponseBadRequest
+        return HttpResponseBadRequest('username required')
+    from django.contrib.auth import get_user_model
+    from accounts.telegram import generate_link_token, bot_link
+    User = get_user_model()
+    user = User.objects.filter(username=username).first()
+    if not user:
+        from django.http import JsonResponse
+        return JsonResponse({'ok': False, 'error': 'user not found'}, status=404)
+    if request.GET.get('clear') == '1' or request.POST.get('clear') == '1':
+        user.telegram_link_token = ''
+        user.telegram_chat_id = ''
+        user.save(update_fields=['telegram_link_token', 'telegram_chat_id'])
+        return JsonResponse({'ok': True, 'cleared': True, 'username': username})
+    token = generate_link_token(user)
+    link = bot_link(token)
+    from django.http import JsonResponse
+    return JsonResponse({'ok': True, 'username': username, 'token': token, 'link': link})
+
+
+@csrf_exempt
 def test_doctor_list_now(request):
     """Trigger the doctor patient list for TOMORROW right now (secret token)."""
     secret = request.GET.get('token') or request.POST.get('token')
