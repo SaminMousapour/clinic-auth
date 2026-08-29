@@ -1422,7 +1422,7 @@ def telegram_webhook(request, secret=None):
     """Telegram pushes updates here. Sends them to accounts/telegram.handle_update()."""
     from django.conf import settings
     from django.http import JsonResponse
-    from accounts.telegram import bot_enabled, handle_update
+    from accounts.telegram import bot_enabled, handle_update, send_message
     try:
         from django.utils.encoding import force_str
     except ImportError:
@@ -1439,7 +1439,21 @@ def telegram_webhook(request, secret=None):
     except Exception:
         return JsonResponse({'ok': False, 'error': 'invalid json'}, status=400)
 
-    result = handle_update(update)
+    try:
+        result = handle_update(update)
+    except Exception as e:
+        # Never leave the user with silence: log it and tell them something went wrong.
+        logger.exception('telegram_webhook: handle_update crashed')
+        try:
+            chat_id = (update.get('message') or {}).get('chat', {}).get('id')
+            if chat_id:
+                send_message(chat_id,
+                             'Sorry, something went wrong processing that. '
+                             'Please try again or send /help.')
+        except Exception:
+            pass
+        return JsonResponse({'ok': False, 'error': 'handler crashed', 'detail': str(e)})
+
     return JsonResponse({'ok': True, 'result': result})
 
 

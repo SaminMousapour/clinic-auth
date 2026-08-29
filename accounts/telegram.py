@@ -120,6 +120,15 @@ def _linked_user(chat_id):
 _WEEKDAY_NAMES = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday',
                   4: 'friday', 5: 'saturday', 6: 'sunday'}
 
+_NO_SLASH_COMMANDS = {
+    'start': '/start', 'help': '/help', 'menu': '/help',
+    'medications': '/medications', 'medicine': '/medications', 'meds': '/medications',
+    'appointments': '/appointments', 'appointment': '/appointments',
+    'next': '/next',
+    'today': '/today', 'list': '/today', 'patients': '/today',
+    'tomorrow': '/tomorrow',
+}
+
 
 def _patient_of(user):
     try:
@@ -151,7 +160,8 @@ def _welcome_for(user):
         return (
             f"✅ Connected to ClinicOS as {user.username} (Admin).\n\n"
             f"Commands:\n"
-            f"• /today, /tomorrow — patient lists (doctors)\n"
+            f"• /today — today's clinic-wide appointment list\n"
+            f"• /tomorrow — tomorrow's clinic-wide appointment list\n"
             f"• /appointments — upcoming appointments\n"
             f"• /help — show this message"
         )
@@ -181,7 +191,8 @@ def _help_for(user):
     if role == 'admin':
         return (
             "ClinicOS Admin Commands:\n"
-            "• /today, /tomorrow — patient lists\n"
+            "• /today — today's clinic-wide appointments\n"
+            "• /tomorrow — tomorrow's clinic-wide appointments\n"
             "• /appointments — upcoming appointments\n"
             "• /help — show this message"
         )
@@ -242,8 +253,13 @@ def handle_update(update):
     bot_username = (me.get('username') or 'ClinicOSBot').lstrip('@')
     deep_link = f'https://t.me/{bot_username}?start='
 
-    if not text.startswith('/'):
-        # Any non-command message: acknowledge and show a hint for the linked role.
+    parts = text.split()
+    raw_cmd = parts[0].lower().split('@')[0].strip()
+    cmd = raw_cmd if raw_cmd.startswith('/') else _NO_SLASH_COMMANDS.get(raw_cmd, '')
+    args = parts[1:]
+
+    if not cmd:
+        # Plain-text message: acknowledge and show a hint for the linked role.
         user = _linked_user(chat_id)
         if user and user.role == 'doctor':
             send_message(chat_id, 'Doctor menu: send /today for today\u2019s patients, /tomorrow for tomorrow\u2019s, or /help.')
@@ -252,10 +268,6 @@ def handle_update(update):
         else:
             send_message(chat_id, 'ClinicOS bot is connected. Use the Connect link on the ClinicOS website to link your account, then /help.')
         return {'ok': True, 'action': 'ack'}
-
-    parts = text.split()
-    cmd = parts[0].lower()
-    args = parts[1:]
 
     if cmd == '/start':
         token = args[0] if args else ''
@@ -301,7 +313,7 @@ def handle_update(update):
         return {'ok': True, 'action': 'help'}
 
     # ---------------- Patient commands ----------------
-    if cmd in ('/medications', '/appointments', '/next'):
+    if cmd in ('/medications', '/next'):
         user = _linked_user(chat_id)
         if not user:
             send_message(chat_id, 'Your Telegram is not connected to a ClinicOS account. Use the Connect button on the website.')
@@ -358,14 +370,15 @@ def handle_update(update):
         send_message(chat_id, "\n".join(lines))
         return {'ok': True, 'action': 'appointments_sent'}
 
-    # ---------------- Doctor commands ----------------
+    # ---------------- Doctor commands ------------------------------------
     if cmd in ('/today', '/list', '/patients', '/tomorrow'):
         user = _linked_user(chat_id)
         if not user:
             send_message(chat_id, 'Your Telegram is not connected to a ClinicOS account. Use the Connect button on the website.')
             return {'ok': False, 'action': 'not_linked'}
         doctor = _doctor_of(user)
-        if not doctor:
+        is_admin = user.role == 'admin'
+        if not doctor and not is_admin:
             send_message(chat_id, 'Only doctors can request the patient list. Use the Connect button on the website.')
             return {'ok': False, 'action': 'not_doctor'}
 
@@ -374,22 +387,36 @@ def handle_update(update):
         from accounts.models import Appointment
         target = _clinic_today() + (timedelta(days=1) if cmd == '/tomorrow' else timedelta(days=0))
         appointments = Appointment.objects.filter(
-            doctor=doctor,
             day=target.day,
             month=target.month,
             year=target.year,
             is_cancelled=False
-        ).order_by('hour', 'minute')
+        )
+        if doctor:
+            appointments = appointments.filter(doctor=doctor)
+        appointments = appointments.order_by('doctor_id', 'hour', 'minute')
 
         if not appointments:
             hint = (' Send /today to see today\u2019s list.' if cmd == '/tomorrow'
                     else ' Send /tomorrow to see tomorrow\u2019s list.')
-            send_message(chat_id, f'No appointments for {target.strftime("%A, %b %d")}.{hint}')
+            kind = 'clinic' if (is_admin and not doctor) else 'doctor\u2019s'
+            send_message(chat_id, f'No {kind} appointments for {target.strftime("%A, %b %d")}.{hint}')
             return {'ok': True, 'action': 'empty_list'}
 
-        lines = [f"📋 Your patient list for {target.strftime('%A, %b %d')}:"]
-        lines += [_format_patient_line(a) for a in appointments]
-        lines.append(f"\nTotal: {len(appointments)} patient(s)")
+        if is_admin and not doctor:
+            lines = [f"📋 Clinic-wide appointments for {target.strftime('%A, %b %d')}:"]
+            for appt in appointments:
+                p = appt.patient
+                d = appt.doctor
+                lines.append(
+                    f"• {appt.hour:02d}:{appt.minute:02d} — Dr. {d.name}: {p.full_name} "
+                    f"(age {p.age}, {p.phone}) — {appt.reason}"
+                )
+            lines.append(f"\nTotal: {len(appointments)} appointment(s)")
+        else:
+            lines = [f"📋 Your patient list for {target.strftime('%A, %b %d')}:"]
+            lines += [_format_patient_line(a) for a in appointments]
+            lines.append(f"\nTotal: {len(appointments)} patient(s)")
         send_message(chat_id, "\n".join(lines))
         return {'ok': True, 'action': 'list_sent'}
 
@@ -401,15 +428,20 @@ def handle_update(update):
             return {'ok': False, 'action': 'not_linked'}
         doctor = _doctor_of(user)
         patient = _patient_of(user)
-        if not (doctor or patient):
-            send_message(chat_id, 'No patient or doctor profile is linked to this account yet.')
-            return {'ok': False, 'action': 'no_profile'}
+        is_admin = user.role == 'admin'
 
         from accounts.email_utils import _clinic_today
         from accounts.models import Appointment
         today = _clinic_today()
-        qs = (Appointment.objects.filter(doctor=doctor) if doctor
-              else Appointment.objects.filter(patient=patient))
+        if doctor:
+            qs = Appointment.objects.filter(doctor=doctor)
+        elif patient:
+            qs = Appointment.objects.filter(patient=patient)
+        elif is_admin:
+            qs = Appointment.objects.all()
+        else:
+            send_message(chat_id, 'No patient or doctor profile is linked to this account yet.')
+            return {'ok': False, 'action': 'no_profile'}
         upcoming = _upcoming_appointments(qs.filter(is_cancelled=False), today)
 
         if not upcoming:
