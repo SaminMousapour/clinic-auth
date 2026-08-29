@@ -174,17 +174,31 @@ def handle_update(update):
 
 
 def bot_status():
-    """Read-only status for the diagnostics page (no secrets)."""
+    """Read-only status for the diagnostics page (no secrets). Includes a live
+    check against api.telegram.org when the token is configured."""
     if not bot_enabled():
         return {'enabled': False, 'detail': 'Telegram bot disabled (set TELEGRAM_BOT_TOKEN).'}
-    detail = 'Telegram bot ready.'
-    if not settings.TELEGRAM_BOT_USERNAME:
-        detail = 'Token configured but TELEGRAM_BOT_USERNAME is empty (deep links on the site are disabled).'
+
+    identity = get_me()
+    username = (settings.TELEGRAM_BOT_USERNAME or identity.get('username') or '').strip().lstrip('@')
+    webhook = api_call('getWebhookInfo', {})
+    webhook_ok = bool((webhook.get('result') or {}).get('url'))
+
+    detail = 'Telegram bot ready and reachable.'
+    if not username:
+        detail = 'Token configured but bot username could not be determined (getMe failed or Telegram unreachable).'
+    if not webhook_ok:
+        detail += ' Webhook not registered (users can still connect via the site link).'
+
     return {
         'enabled': True,
         'detail': detail,
-        'bot_username_set': bool(settings.TELEGRAM_BOT_USERNAME),
+        'bot_username': username or None,
+        'bot_username_set': bool(username),
         'bot_name': settings.TELEGRAM_BOT_NAME,
+        'bot_first_name': identity.get('first_name') or None,
+        'webhook_set': webhook_ok,
+        'webhook_url': (webhook.get('result') or {}).get('url') or None,
     }
 
 
