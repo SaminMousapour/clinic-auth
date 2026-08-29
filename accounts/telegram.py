@@ -113,8 +113,34 @@ def webhook_url(request=None, base=None):
 
 
 def _linked_user(chat_id):
+    """Resolve the active ClinicOS account for a Telegram chat.
+
+    One Telegram chat can be linked to several accounts (e.g. a doctor testing
+    the same phone as their patient). We keep one *active* account per chat and
+    let the user switch with /login; if nothing is active yet we activate the
+    most recently linked account.
+    """
     User = get_user_model()
-    return User.objects.filter(telegram_chat_id=str(chat_id)).first()
+    chat_id = str(chat_id)
+    users = list(User.objects.filter(telegram_chat_id=chat_id).order_by('id'))
+    if not users:
+        return None
+    active = [u for u in users if u.telegram_active]
+    if active:
+        return active[0]
+    user = users[-1]
+    user.telegram_active = True
+    user.save(update_fields=['telegram_active'])
+    return user
+
+
+def _activate_for_chat(user, chat_id):
+    """Make `user` the single active account for its shared Telegram chat."""
+    User = get_user_model()
+    User.objects.filter(telegram_chat_id=str(chat_id)).exclude(id=user.id).update(telegram_active=False)
+    if not user.telegram_active:
+        user.telegram_active = True
+        user.save(update_fields=['telegram_active'])
 
 
 _WEEKDAY_NAMES = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday',
@@ -128,6 +154,7 @@ _NO_SLASH_COMMANDS = {
     'today': '/today', 'list': '/today', 'patients': '/today',
     'tomorrow': '/tomorrow',
     'upcoming': '/upcoming', 'schedule': '/upcoming', 'calendar': '/upcoming',
+    'login': '/login', 'switch': '/login', 'account': '/login',
 }
 
 
@@ -189,6 +216,7 @@ def _help_for(user):
             "• /tomorrow — tomorrow's patient list\n"
             "• /upcoming — all your upcoming appointments\n"
             "• /appointments — your upcoming schedule\n"
+            "• /login — switch to another account on this chat\n"
             "• /help — show this message\n\n"
             "Every day at 10 PM you'll also receive tomorrow's patient list automatically."
         )
@@ -199,6 +227,7 @@ def _help_for(user):
             "• /tomorrow — tomorrow's clinic-wide appointments\n"
             "• /upcoming — all upcoming appointments\n"
             "• /appointments — upcoming appointments\n"
+            "• /login — switch to another account on this chat\n"
             "• /help — show this message"
         )
     return (
@@ -206,6 +235,7 @@ def _help_for(user):
         "• /medications — your medication schedule\n"
         "• /appointments — your upcoming appointments\n"
         "• /next — your next appointment\n"
+        "• /login — switch to another account on this chat\n"
         "• /help — show this message\n\n"
         "You'll also be reminded automatically: medication times and the day before each appointment."
     )
@@ -286,6 +316,7 @@ def handle_update(update):
             user.telegram_chat_id = str(chat_id)
             user.telegram_link_token = None
             user.save(update_fields=['telegram_chat_id', 'telegram_link_token'])
+            _activate_for_chat(user, str(chat_id))
             send_message(chat_id, _welcome_for(user))
             return {'ok': True, 'action': 'linked', 'user': user.username}
 
@@ -316,6 +347,45 @@ def handle_update(update):
                 f"then send /help to see your commands."
             ))
         return {'ok': True, 'action': 'help'}
+
+    # ---------------- Switch account (one chat, several accounts) ----------------
+    if cmd == '/login':
+        User = get_user_model()
+        accounts = list(User.objects.filter(telegram_chat_id=str(chat_id)).order_by('id'))
+        if not accounts:
+            send_message(chat_id, 'Your Telegram is not connected to any ClinicOS account. Use the Connect button on the website.')
+            return {'ok': False, 'action': 'not_linked'}
+
+        target = ' '.join(args).strip().lower()
+        if not target:
+            lines = [
+                'This Telegram is linked to several ClinicOS accounts. '
+                'Use /login <username> or reply with a number to pick the active one:'
+            ]
+            for i, acc in enumerate(accounts, 1):
+                marker = '  (active)' if acc.telegram_active else ''
+                lines.append(f"{i}. {acc.username} ({acc.role}){marker}")
+            lines.append('\nFor example: /login davidmaxwell')
+            send_message(chat_id, '\n'.join(lines))
+            return {'ok': True, 'action': 'list_accounts'}
+
+        if target.isdigit():
+            idx = int(target) - 1
+            match = accounts[idx] if 0 <= idx < len(accounts) else None
+        else:
+            match = next((a for a in accounts if a.username.lower() == target), None)
+
+        if not match:
+            send_message(chat_id, f'No ClinicOS account "{target}" is linked to this Telegram. Send /login to see the list.')
+            return {'ok': False, 'action': 'bad_account'}
+
+        if match.telegram_active:
+            send_message(chat_id, f'Already operating as {match.username} ({match.role}).')
+            return {'ok': True, 'action': 'already_active'}
+
+        _activate_for_chat(match, str(chat_id))
+        send_message(chat_id, f"Switched to {match.username} ({match.role}). " + _welcome_for(match))
+        return {'ok': True, 'action': 'switched', 'user': match.username}
 
     # ---------------- Patient commands ----------------
     if cmd in ('/medications', '/next'):
