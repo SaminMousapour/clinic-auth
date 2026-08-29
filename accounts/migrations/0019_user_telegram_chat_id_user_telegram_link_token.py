@@ -18,6 +18,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='telegram_link_token',
-            field=models.CharField(blank=True, default='', help_text='One-time token used to connect a Telegram account', max_length=64, null=True, unique=True),
+            field=models.CharField(blank=True, default=None, help_text='One-time token used to connect a Telegram account', max_length=64, null=True, unique=True),
         ),
     ]

@@ -28,7 +28,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='patient')
     is_admin_user = models.BooleanField(default=False)
     telegram_chat_id = models.CharField(max_length=64, default='', blank=True, help_text='Telegram chat id to receive bot reminders')
-    telegram_link_token = models.CharField(max_length=64, default='', blank=True, unique=True, null=True, help_text='One-time token used to connect a Telegram account')
+    telegram_link_token = models.CharField(max_length=64, default=None, blank=True, unique=True, null=True, help_text='One-time token used to connect a Telegram account')
 
     def __str__(self):
         return f"{self.username} ({self.role})"
