@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import secrets
+from datetime import date
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -111,6 +112,113 @@ def webhook_url(request=None, base=None):
     return ''
 
 
+def _linked_user(chat_id):
+    User = get_user_model()
+    return User.objects.filter(telegram_chat_id=str(chat_id)).first()
+
+
+_WEEKDAY_NAMES = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday',
+                  4: 'friday', 5: 'saturday', 6: 'sunday'}
+
+
+def _patient_of(user):
+    try:
+        return user.patient_profile
+    except Exception:
+        return None
+
+
+def _doctor_of(user):
+    try:
+        return user.doctor_profile
+    except Exception:
+        return None
+
+
+def _welcome_for(user):
+    role = user.role or 'patient'
+    if role == 'doctor':
+        return (
+            f"✅ Connected to ClinicOS as {user.username} (Doctor).\n"
+            f"From now on you'll receive your patient list here every day at 10 PM.\n\n"
+            f"Commands:\n"
+            f"• /today — today's patient list\n"
+            f"• /tomorrow — tomorrow's patient list\n"
+            f"• /appointments — your upcoming schedule\n"
+            f"• /help — show this message"
+        )
+    if role == 'admin':
+        return (
+            f"✅ Connected to ClinicOS as {user.username} (Admin).\n\n"
+            f"Commands:\n"
+            f"• /today, /tomorrow — patient lists (doctors)\n"
+            f"• /appointments — upcoming appointments\n"
+            f"• /help — show this message"
+        )
+    return (
+        f"✅ Connected to ClinicOS as {user.username} (Patient).\n"
+        f"From now on you'll receive your reminders here: "
+        f"medication times and the day before each appointment.\n\n"
+        f"Commands:\n"
+        f"• /medications — your medication schedule\n"
+        f"• /appointments — your upcoming appointments\n"
+        f"• /next — your next appointment\n"
+        f"• /help — show this message"
+    )
+
+
+def _help_for(user):
+    role = user.role or 'patient'
+    if role == 'doctor':
+        return (
+            "ClinicOS Doctor Commands:\n"
+            "• /today — today's patient list\n"
+            "• /tomorrow — tomorrow's patient list\n"
+            "• /appointments — your upcoming schedule\n"
+            "• /help — show this message\n\n"
+            "Every day at 10 PM you'll also receive tomorrow's patient list automatically."
+        )
+    if role == 'admin':
+        return (
+            "ClinicOS Admin Commands:\n"
+            "• /today, /tomorrow — patient lists\n"
+            "• /appointments — upcoming appointments\n"
+            "• /help — show this message"
+        )
+    return (
+        "ClinicOS Patient Commands:\n"
+        "• /medications — your medication schedule\n"
+        "• /appointments — your upcoming appointments\n"
+        "• /next — your next appointment\n"
+        "• /help — show this message\n\n"
+        "You'll also be reminded automatically: medication times and the day before each appointment."
+    )
+
+
+def _format_appointment(appt):
+    d = appt.doctor
+    return (
+        f"• {date(appt.year, appt.month, appt.day).strftime('%a, %b %d')} "
+        f"{appt.hour:02d}:{appt.minute:02d} — Dr. {d.name} ({d.specialty})"
+        + (f" — {appt.reason}" if appt.reason else "")
+    )
+
+
+def _format_patient_line(appt):
+    p = appt.patient
+    return (
+        f"• {appt.hour:02d}:{appt.minute:02d} — {p.full_name} "
+        f"(age {p.age}, {p.phone}) — {appt.reason}"
+    )
+
+
+def _upcoming_appointments(qs, today):
+    return [
+        a for a in qs.order_by('year', 'month', 'day', 'hour', 'minute')
+        if date(a.year, a.month, a.day) >= today
+    ]
+
+
 def handle_update(update):
     """
     Process a single Telegram update (a message). Returns a dict describing
@@ -135,8 +243,14 @@ def handle_update(update):
     deep_link = f'https://t.me/{bot_username}?start='
 
     if not text.startswith('/'):
-        # Any non-command message: acknowledge and show hint.
-        send_message(chat_id, 'ClinicOS bot is connected. Send /start to see options, /help for commands.')
+        # Any non-command message: acknowledge and show a hint for the linked role.
+        user = _linked_user(chat_id)
+        if user and user.role == 'doctor':
+            send_message(chat_id, 'Doctor menu: send /today for today\u2019s patients, /tomorrow for tomorrow\u2019s, or /help.')
+        elif user:
+            send_message(chat_id, 'Your menu: send /medications, /appointments, or /next. Or /help for all commands.')
+        else:
+            send_message(chat_id, 'ClinicOS bot is connected. Use the Connect link on the ClinicOS website to link your account, then /help.')
         return {'ok': True, 'action': 'ack'}
 
     parts = text.split()
@@ -153,94 +267,166 @@ def handle_update(update):
                 send_message(chat_id, 'This link is not valid or has expired. Open the "Connect" button on the ClinicOS website.')
                 return {'ok': False, 'action': 'invalid_token'}
             user.telegram_chat_id = str(chat_id)
-            user.telegram_link_token = ''
+            user.telegram_link_token = None
             user.save(update_fields=['telegram_chat_id', 'telegram_link_token'])
-
-            role_label = dict(user.ROLE_CHOICES).get(user.role, 'user')
-            welcome = (
-                f"✅ Connected to ClinicOS as {user.username} ({role_label}).\n"
-                f"From now on you'll get your reminders here: "
-                f"medication times, your appointments, and (if you're a doctor) your patient list at 10 PM.\n\n"
-                f"Commands:\n"
-                f"• /list — today's patient list (doctors)\n"
-                f"• /help — show this message"
-            )
-            send_message(chat_id, welcome)
+            send_message(chat_id, _welcome_for(user))
             return {'ok': True, 'action': 'linked', 'user': user.username}
 
-        # No token: show help with dynamic deep link
+        # No token: show connection instructions (role-specific once linked)
         help_text = (
             f"Welcome to the ClinicOS bot!\n\n"
-            f"To get reminders with your ClinicOS account, "
-            f"open the Connect link on the ClinicOS website while logged in "
-            f"(or use this deep link):\n{deep_link}<your-token>\n\n"
-            f"This bot can send you:\n"
-            f"• 💊 Medication reminders at take-time\n"
-            f"• 📅 Appointment reminders (day before, at 10 PM)\n"
-            f"• 📋 Patient list for doctors (10 PM daily)\n\n"
-            f"Commands:\n"
-            f"• /list — today's patient list (doctors)\n"
-            f"• /help — show this message"
+            f"To link your ClinicOS account, open the Connect (blue paper-plane) "
+            f"button on the ClinicOS website while logged in — or use this deep link:\n"
+            f"{deep_link}<your-token>\n\n"
+            f"Once connected you'll get:\n"
+            f"• 💊 Medication reminders at take-time (patients)\n"
+            f"• 📅 Appointment reminders the day before (patients)\n"
+            f"• 📋 Your daily patient list at 10 PM (doctors)\n\n"
+            f"Then send /help to see your commands."
         )
         send_message(chat_id, help_text)
         return {'ok': True, 'action': 'started'}
 
     if cmd in ('/help',):
-        help_text = (
-            f"ClinicOS Bot Commands:\n"
-            f"• /start — connect your account (use deep link from website)\n"
-            f"• /list — today's patient list (doctors only)\n"
-            f"• /help — show this message"
-        )
-        send_message(chat_id, help_text)
+        user = _linked_user(chat_id)
+        if user:
+            send_message(chat_id, _help_for(user))
+        else:
+            send_message(chat_id, (
+                "ClinicOS bot is connected.\n"
+                f"To get your personal reminders, open the Connect link on the "
+                f"ClinicOS website while logged in (or use {deep_link}<your-token>), "
+                f"then send /help to see your commands."
+            ))
         return {'ok': True, 'action': 'help'}
 
-    if cmd in ('/list', '/patients', '/today'):
-        User = get_user_model()
-        user = User.objects.filter(telegram_chat_id=str(chat_id)).first()
+    # ---------------- Patient commands ----------------
+    if cmd in ('/medications', '/appointments', '/next'):
+        user = _linked_user(chat_id)
         if not user:
             send_message(chat_id, 'Your Telegram is not connected to a ClinicOS account. Use the Connect button on the website.')
             return {'ok': False, 'action': 'not_linked'}
-
-        if user.role != 'doctor':
-            send_message(chat_id, 'Only doctors can request the patient list. Patients receive reminders automatically.')
-            return {'ok': False, 'action': 'not_doctor'}
-
-        # Fetch today's appointments for this doctor
-        try:
-            doctor = user.doctor_profile
-        except Exception:
-            send_message(chat_id, 'Doctor profile not found.')
-            return {'ok': False, 'action': 'no_doctor_profile'}
+        patient = _patient_of(user)
+        if not patient:
+            send_message(chat_id, 'This account is not a patient. Doctors use /today and /tomorrow for patient lists.')
+            return {'ok': False, 'action': 'not_patient'}
 
         from accounts.email_utils import _clinic_today
-        from accounts.models import Appointment
+        from accounts.models import Appointment, Medication
+
         today = _clinic_today()
+
+        if cmd == '/medications':
+            today_name = _WEEKDAY_NAMES.get(today.weekday(), '')
+            applicable = []
+            for med in Medication.objects.filter(patient=patient):
+                if med.days_of_week:
+                    med_days = [d.strip().lower() for d in med.days_of_week.split(',') if d.strip()]
+                    if today_name in med_days:
+                        applicable.append(med)
+                elif (med.day == today.day and med.month == today.month
+                        and med.year == today.year):
+                    applicable.append(med)
+            applicable.sort(key=lambda m: m.time)
+
+            if not applicable:
+                send_message(chat_id, f'You have no medications scheduled for today ({today.strftime("%A, %b %d")}).')
+                return {'ok': True, 'action': 'meds_sent'}
+
+            lines = [f"💊 Your medications for {today.strftime('%A, %b %d')}:"]
+            for med in applicable:
+                lines.append(f"• {med.name} ({med.dosage}) — {med.get_times_display()}")
+            send_message(chat_id, "\n".join(lines))
+            return {'ok': True, 'action': 'meds_sent'}
+
+        upcoming = _upcoming_appointments(
+            Appointment.objects.filter(patient=patient, is_cancelled=False), today
+        )
+
+        if cmd == '/next':
+            if not upcoming:
+                send_message(chat_id, 'You have no upcoming appointments. Contact the clinic to book one.')
+                return {'ok': True, 'action': 'empty_appointments'}
+            msg = "📅 Your next appointment:\n" + _format_appointment(upcoming[0])
+            send_message(chat_id, msg)
+            return {'ok': True, 'action': 'appointments_sent'}
+
+        if not upcoming:
+            send_message(chat_id, 'You have no upcoming appointments. Contact the clinic to book one.')
+            return {'ok': True, 'action': 'empty_appointments'}
+        lines = ["📅 Your upcoming appointments:"] + [_format_appointment(a) for a in upcoming[:6]]
+        send_message(chat_id, "\n".join(lines))
+        return {'ok': True, 'action': 'appointments_sent'}
+
+    # ---------------- Doctor commands ----------------
+    if cmd in ('/today', '/list', '/patients', '/tomorrow'):
+        user = _linked_user(chat_id)
+        if not user:
+            send_message(chat_id, 'Your Telegram is not connected to a ClinicOS account. Use the Connect button on the website.')
+            return {'ok': False, 'action': 'not_linked'}
+        doctor = _doctor_of(user)
+        if not doctor:
+            send_message(chat_id, 'Only doctors can request the patient list. Use the Connect button on the website.')
+            return {'ok': False, 'action': 'not_doctor'}
+
+        from datetime import timedelta
+        from accounts.email_utils import _clinic_today
+        from accounts.models import Appointment
+        target = _clinic_today() + (timedelta(days=1) if cmd == '/tomorrow' else timedelta(days=0))
         appointments = Appointment.objects.filter(
             doctor=doctor,
-            day=today.day,
-            month=today.month,
-            year=today.year,
+            day=target.day,
+            month=target.month,
+            year=target.year,
             is_cancelled=False
         ).order_by('hour', 'minute')
 
         if not appointments:
-            send_message(chat_id, f'No appointments for today ({today.strftime("%A, %b %d")}).')
+            hint = (' Send /today to see today\u2019s list.' if cmd == '/tomorrow'
+                    else ' Send /tomorrow to see tomorrow\u2019s list.')
+            send_message(chat_id, f'No appointments for {target.strftime("%A, %b %d")}.{hint}')
             return {'ok': True, 'action': 'empty_list'}
 
-        lines = [f"📋 Your patient list for {today.strftime('%A, %b %d')}:"]
-        for appt in appointments:
-            p = appt.patient
-            lines.append(
-                f"• {appt.hour:02d}:{appt.minute:02d} — {p.full_name} "
-                f"(age {p.age}, {p.phone}) — {appt.reason}"
-            )
+        lines = [f"📋 Your patient list for {target.strftime('%A, %b %d')}:"]
+        lines += [_format_patient_line(a) for a in appointments]
         lines.append(f"\nTotal: {len(appointments)} patient(s)")
         send_message(chat_id, "\n".join(lines))
         return {'ok': True, 'action': 'list_sent'}
 
-    # Unknown command
-    send_message(chat_id, f'Unknown command: {cmd}. Send /help for options.')
+    # ---------------- Shared: upcoming appointments (doctor schedule or patient) ----------------
+    if cmd == '/appointments':
+        user = _linked_user(chat_id)
+        if not user:
+            send_message(chat_id, 'Your Telegram is not connected to a ClinicOS account. Use the Connect button on the website.')
+            return {'ok': False, 'action': 'not_linked'}
+        doctor = _doctor_of(user)
+        patient = _patient_of(user)
+        if not (doctor or patient):
+            send_message(chat_id, 'No patient or doctor profile is linked to this account yet.')
+            return {'ok': False, 'action': 'no_profile'}
+
+        from accounts.email_utils import _clinic_today
+        from accounts.models import Appointment
+        today = _clinic_today()
+        qs = (Appointment.objects.filter(doctor=doctor) if doctor
+              else Appointment.objects.filter(patient=patient))
+        upcoming = _upcoming_appointments(qs.filter(is_cancelled=False), today)
+
+        if not upcoming:
+            send_message(chat_id, 'You have no upcoming appointments on your schedule.')
+            return {'ok': True, 'action': 'empty_appointments'}
+        lines = ["📅 Upcoming appointments:"] + [_format_appointment(a) for a in upcoming[:6]]
+        send_message(chat_id, "\n".join(lines))
+        return {'ok': True, 'action': 'appointments_sent'}
+
+    # Unknown/unsupported command
+    user = _linked_user(chat_id)
+    if user and user.role == 'doctor':
+        send_message(chat_id, f'Unknown command: {cmd}. Send /help to see your commands, or /today for today\u2019s patient list.')
+    elif user:
+        send_message(chat_id, f'Unknown command: {cmd}. Send /help to see your commands, or /medications for today\u2019s medicines.')
+    else:
+        send_message(chat_id, f'Unknown command: {cmd}. Use the Connect link on the ClinicOS website to link your account, then /help.')
     return {'ok': True, 'action': 'unknown'}
 
 
@@ -286,8 +472,13 @@ BOT_BIO = (
 BOT_SHORT_BIO = "ClinicOS reminders: medications, appointments, and doctor patient lists."
 
 BOT_COMMANDS = [
-    ('start', 'Connect your ClinicOS account and see options'),
-    ('help', 'About this bot'),
+    ('start', 'Connect your ClinicOS account'),
+    ('help', 'Show your commands'),
+    ('medications', 'Your medication schedule (patients)'),
+    ('appointments', 'Upcoming appointments'),
+    ('next', 'Your next appointment (patients)'),
+    ('today', "Today's patient list (doctors)"),
+    ('tomorrow', "Tomorrow's patient list (doctors)"),
 ]
 
 

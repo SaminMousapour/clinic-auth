@@ -447,15 +447,21 @@ def send_medication_reminders_for_current_time():
     weekday_map = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday', 4: 'friday', 5: 'saturday', 6: 'sunday'}
     today_name = weekday_map[now.weekday()]
 
-    medications = Medication.objects.filter(
-        days_of_week__contains=today_name
-    ).select_related('patient')
+    medications = Medication.objects.select_related('patient')
 
     sent_count = 0
     failed_count = 0
     matched = 0
 
     for medication in medications:
+        # Recurring meds match by weekday; one-off (date-only) meds match by date.
+        if medication.days_of_week:
+            med_days = [d.strip().lower() for d in medication.days_of_week.split(',') if d.strip()]
+            if today_name not in med_days:
+                continue
+        elif not (medication.day == now.day and medication.month == now.month
+                  and medication.year == now.year):
+            continue
         times_list = []
         if medication.times_of_day:
             times_list = [t.strip() for t in medication.times_of_day.split(',') if t.strip()]
