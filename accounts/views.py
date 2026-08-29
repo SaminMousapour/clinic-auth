@@ -1635,6 +1635,23 @@ def test_seed_data(request):
     med.dosage = '100mg'
     med.save()
 
+    # Book an appointment for the "max" doctor too, if that profile exists
+    max_appt = None
+    max_doctor = Doctor.objects.filter(user__username='max').first()
+    if max_doctor:
+        max_appt = Appointment.objects.create(
+            doctor=max_doctor,
+            patient=patient,
+            patient_name='Ali Ahmadi',
+            patient_phone='+989123456789',
+            reason='Follow-up visit',
+            day=tomorrow.day,
+            month=tomorrow.month,
+            year=tomorrow.year,
+            hour=10,
+            minute=0,
+        )
+
     from django.http import JsonResponse
     return JsonResponse({
         'ok': True,
@@ -1642,4 +1659,5 @@ def test_seed_data(request):
         'doctor': 'testdoctor / TestPass123',
         'appointment': f'tomorrow {tomorrow} at 14:30',
         'medication': f'Aspirin at {med_time}',
+        'max_appointment': str(max_appt) if max_appt else None,
     })
