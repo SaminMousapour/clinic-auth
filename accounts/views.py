@@ -1349,10 +1349,22 @@ def patient_record_add(request):
 def email_diagnostics(request):
     """Read-only email config status (no secrets). Useful for debugging deploys."""
     from django.conf import settings
+    from django.db import connections
     from accounts.models import EmailLog
 
     log_keys = list(EmailLog.objects.order_by('created_at').values_list('key', flat=True))
+    db_conn = connections['default']
+    db_name = None
+    try:
+        db_name = db_conn.settings_dict.get('NAME') or db_conn.vendor
+    except Exception as e:
+        db_name = f'unknown ({e})'
     config = {
+        'database': {
+            'engine': db_conn.vendor,
+            'name': str(db_name),
+            'uses_postgres': db_conn.vendor == 'postgresql',
+        },
         'backend': settings.EMAIL_BACKEND,
         'host': settings.EMAIL_HOST,
         'port': settings.EMAIL_PORT,
