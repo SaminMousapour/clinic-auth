@@ -73,15 +73,17 @@ def start_email_scheduler():
 
     # Configure the ClinicOS Telegram bot (name, bio, commands, webhook) if a
     # token is configured. Idempotent; runs each start.
-    from accounts.telegram import bot_enabled, configure_bot, webhook_url
+    from accounts.telegram import bot_enabled, configure_bot
     if bot_enabled():
         try:
-            url = webhook_url()
-            if not url:
+            base = settings.TELEGRAM_WEBHOOK_BASE or os.environ.get('RAILWAY_PUBLIC_DOMAIN', '') or ''
+            if not base:
                 hosts = [h for h in list(getattr(settings, 'ALLOWED_HOSTS', [])) if h not in ('*', 'healthcheck.railway.app')]
                 if hosts:
-                    url = f'https://{hosts[0]}/telegram/webhook/{settings.TELEGRAM_WEBHOOK_SECRET}/'
-            res = configure_bot(base_url=url)
+                    base = hosts[0]
+            if not base.startswith('http'):
+                base = 'https://' + base
+            res = configure_bot(base=base)
             logger.info('Telegram bot configuration: %s', res.get('results', res))
         except Exception as e:
             logger.warning('Telegram bot configuration failed: %s', e)
