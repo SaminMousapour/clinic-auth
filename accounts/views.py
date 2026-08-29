@@ -1608,6 +1608,23 @@ def test_doctor_list_now(request):
 
 
 @csrf_exempt
+def test_reset_data(request):
+    """Wipe clinic data and re-seed with the current encryption key (secret token).
+
+    Used to recover from encryption-key rotation on ephemeral hosts, which leaves
+    stored names undecryptable. Run once after deploying a stable encryption key.
+    """
+    secret = request.GET.get('token') or request.POST.get('token')
+    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('Invalid token')
+    from django.core.management import call_command
+    from django.http import JsonResponse
+    call_command('reset_clinic_data')
+    return JsonResponse({'ok': True, 'detail': 'data wiped and re-seeded with current encryption key'})
+
+
+@csrf_exempt
 def test_seed_data(request):
     secret = request.GET.get('token') or request.POST.get('token')
     if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):

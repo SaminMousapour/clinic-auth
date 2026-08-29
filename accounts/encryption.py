@@ -1,5 +1,7 @@
 from cryptography.fernet import Fernet
 from django.conf import settings
+import base64
+import hashlib
 import os
 
 
@@ -8,8 +10,19 @@ def get_encryption_key():
     # platforms like Vercel where the filesystem is read-only).
     env_key = os.environ.get('ENCRYPTION_KEY')
     if env_key:
-        return env_key.encode()
-    # Local development: store the key in a file that is gitignored.
+        # Accept a full Fernet key, or any non-empty value that gets hashed.
+        try:
+            Fernet(env_key.encode())
+            return env_key.encode()
+        except Exception:
+            return base64.urlsafe_b64encode(hashlib.sha256(env_key.encode()).digest())
+    # Default: derive a stable key from Django's SECRET_KEY. This must never come
+    # from a file on ephemeral hosts (Railway/Vercel regenerate the filesystem on
+    # every deploy, which rotated the key and broke all stored names).
+    secret = settings.SECRET_KEY
+    if secret:
+        return base64.urlsafe_b64encode(hashlib.sha256(secret.encode()).digest())
+    # Local development fallback: store the key in a file that is gitignored.
     key_path = os.path.join(settings.BASE_DIR, '.encryption_key')
     if os.path.exists(key_path):
         with open(key_path, 'rb') as f:
