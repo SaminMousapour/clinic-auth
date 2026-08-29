@@ -220,12 +220,11 @@ BOT_COMMANDS = [
 ]
 
 
-def configure_bot(base=None):
+def configure_bot():
     """
     Apply the professional bot settings (name, bio, commands) and register the
-    webhook. Runs from the server (which can reach api.telegram.org). Returns a
-    dict of per-call results. Idempotent. `base` is a bare origin like
-    https://example.up.railway.app (defaults to the RAILWAY_PUBLIC_DOMAIN env).
+    webhook using the server's native fallback (RAILWAY_PUBLIC_DOMAIN etc).
+    Runs from the server (which can reach api.telegram.org).
     """
     if not bot_enabled():
         return {'ok': False, 'error': 'TELEGRAM_BOT_TOKEN not configured'}
@@ -238,7 +237,7 @@ def configure_bot(base=None):
         {'command': c, 'description': d} for c, d in BOT_COMMANDS
     ])})
 
-    url = webhook_url(base=base)
+    url = webhook_url()  # uses the server's native fallback (RAILWAY_PUBLIC_DOMAIN)
     if url:
         results['setWebhook'] = set_webhook(url)
     else:

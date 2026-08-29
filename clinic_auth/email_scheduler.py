@@ -76,14 +76,7 @@ def start_email_scheduler():
     from accounts.telegram import bot_enabled, configure_bot
     if bot_enabled():
         try:
-            base = settings.TELEGRAM_WEBHOOK_BASE or os.environ.get('RAILWAY_PUBLIC_DOMAIN', '') or ''
-            if not base:
-                hosts = [h for h in list(getattr(settings, 'ALLOWED_HOSTS', [])) if h not in ('*', 'healthcheck.railway.app')]
-                if hosts:
-                    base = hosts[0]
-            if not base.startswith('http'):
-                base = 'https://' + base
-            res = configure_bot(base=base)
+            res = configure_bot()
             logger.info('Telegram bot configuration: %s', res.get('results', res))
         except Exception as e:
             logger.warning('Telegram bot configuration failed: %s', e)
