@@ -1718,6 +1718,44 @@ def test_seed_data(request):
             minute=0,
         )
 
+    # Also book appointments for the first REAL seeded doctor (davidmaxwell).
+    # It survives every deploy (seed_doctors), so there's always a stable
+    # doctor to test the bot with even if test accounts are removed.
+    seed_appt = None
+    seed_today_appt = None
+    seed_doctor = Doctor.objects.filter(user__username='davidmaxwell').first()
+    if seed_doctor:
+        Appointment.objects.filter(doctor=seed_doctor, patient=patient, patient_name='Ali Ahmadi').delete()
+        if not seed_doctor.user.email:
+            seed_doctor.user.email = 'max@test.com'
+            seed_doctor.user.save(update_fields=['email'])
+        seed_appt = Appointment.objects.create(
+            doctor=seed_doctor,
+            patient=patient,
+            patient_name='Ali Ahmadi',
+            patient_phone='+989123456789',
+            reason='Check-up with Dr. Maxwell',
+            day=tomorrow.day,
+            month=tomorrow.month,
+            year=tomorrow.year,
+            hour=9,
+            minute=0,
+        )
+        from accounts.email_utils import _clinic_today
+        today2 = _clinic_today()
+        seed_today_appt = Appointment.objects.create(
+            doctor=seed_doctor,
+            patient=patient,
+            patient_name='Ali Ahmadi',
+            patient_phone='+989123456789',
+            reason='Check-up with Dr. Maxwell (today)',
+            day=today2.day,
+            month=today2.month,
+            year=today2.year,
+            hour=(now.hour + 2) % 24,
+            minute=0,
+        )
+
     from django.http import JsonResponse
     return JsonResponse({
         'ok': True,
@@ -1727,4 +1765,6 @@ def test_seed_data(request):
         'medication': f'Aspirin at {med_time}',
         'max_appointment': str(max_appt) if max_appt else None,
         'max_today_appointment': str(max_today_appt) if max_today_appt else None,
+        'seed_appointment': str(seed_appt) if seed_appt else None,
+        'seed_today_appointment': str(seed_today_appt) if seed_today_appt else None,
     })
