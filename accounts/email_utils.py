@@ -472,8 +472,11 @@ def send_medication_reminders_for_current_time():
             try:
                 med_time = datetime.strptime(time_str, '%H:%M').time()
                 med_dt = datetime.combine(now.date(), med_time, tzinfo=_clinic_tz())
-                diff_minutes = abs((now - med_dt).total_seconds() / 60)
-                if diff_minutes <= 7:
+                diff_minutes = (now - med_dt).total_seconds() / 60
+                # Send within a tight window: not more than 1 minute early and
+                # no more than 2 minutes late (with a 1-minute ticker this never
+                # skips a dose while keeping reminders on time).
+                if -1 <= diff_minutes <= 2:
                     matched += 1
                     key = f'med-{medication.id}-{now.date().isoformat()}-{time_str}'
                     if _already_sent(key):

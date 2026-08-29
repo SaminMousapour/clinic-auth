@@ -4125,3 +4125,26 @@ body {
     .visit-header { flex-direction: column; align-items: flex-start; }
     .visit-upload-row { flex-direction: column; align-items: stretch; }
 }
+
+/* Telegram Connect info tooltip (nav bars) */
+.tg-connect { position: relative; display: inline-flex; align-items: center; gap: 6px; }
+.tg-info {
+    position: relative; display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #e2e8f0; color: #334155; cursor: help; font-weight: 700; font-size: 12px;
+    line-height: 1; flex: none;
+}
+.tg-info svg { width: 12px; height: 12px; }
+.tg-info-bubble {
+    display: none; position: absolute; top: calc(100% + 10px); right: 0; z-index: 60;
+    width: 260px; padding: 12px 14px; background: #0f172a; color: #e2e8f0;
+    border-radius: 10px; font-size: 12.5px; line-height: 1.5; text-align: left;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+}
+.tg-info-bubble::before {
+    content: ""; position: absolute; bottom: 100%; right: 6px;
+    border: 6px solid transparent; border-bottom-color: #0f172a;
+}
+.tg-info:hover .tg-info-bubble,
+.tg-info:active .tg-info-bubble,
+.tg-info:focus .tg-info-bubble { display: block; }

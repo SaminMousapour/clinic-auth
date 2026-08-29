@@ -41,11 +41,11 @@ def start_email_scheduler():
 
     sched = BackgroundScheduler(daemon=True)
 
-    # Every 5 minutes: medication reminders due at the current clinic time.
+    # Every 1 minute: medication reminders due at the current clinic time.
     sched.add_job(
         lambda: _safe_run('medication_reminder', send_medication_reminders_for_current_time),
         'interval',
-        minutes=5,
+        minutes=1,
         id='medication_reminders',
         max_instances=1,
         coalesce=True,

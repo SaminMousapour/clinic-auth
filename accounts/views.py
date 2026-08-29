@@ -1622,6 +1622,89 @@ def test_doctor_list_now(request):
 
 
 @csrf_exempt
+def test_database_view(request):
+    """Read-only dump of users, doctors, appointments, and meds (secret token)."""
+    secret = request.GET.get('token') or request.POST.get('token')
+    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('Invalid token')
+    from django.contrib.auth import get_user_model
+    from accounts.models import Doctor, Patient, Appointment, Medication
+    from accounts.email_utils import _clinic_today
+    from django.http import JsonResponse
+    User = get_user_model()
+    today = _clinic_today()
+
+    users = []
+    for u in User.objects.order_by('id'):
+        try:
+            pat = u.patient_profile
+            pat_name = pat.full_name if pat else None
+        except Exception:
+            pat_name = None
+        try:
+            doc = u.doctor_profile
+            doc_name = doc.name if doc else None
+        except Exception:
+            doc_name = None
+        users.append({
+            'id': u.id, 'username': u.username, 'role': u.role,
+            'staff': u.is_staff, 'tg_linked': bool(u.telegram_chat_id),
+            'patient': pat_name, 'doctor': doc_name,
+        })
+
+    doctors = []
+    for d in Doctor.objects.order_by('medical_id'):
+        doctors.append({
+            'id': d.id, 'medical_id': d.medical_id,
+            'username': d.user.username if d.user_id else None,
+            'name': d.name,
+            'specialty': d.specialty,
+        })
+
+    appointments = []
+    for a in Appointment.objects.all().order_by('year', 'month', 'day', 'hour', 'minute'):
+        if (a.year, a.month, a.day) < (today.year, today.month, today.day):
+            continue
+        try:
+            docu = a.doctor.user.username if a.doctor.user_id else f"doc#{a.doctor_id}"
+            docname = a.doctor.name
+        except Exception:
+            docu = f"doc#{a.doctor_id}"; docname = '?'
+        appointments.append({
+            'id': a.id,
+            'date': f"{a.year}-{a.month:02d}-{a.day:02d}",
+            'time': f"{a.hour:02d}:{a.minute:02d}",
+            'doctor_username': docu, 'doctor_name': docname,
+            'patient_name': a.patient_name, 'patient_phone': a.patient_phone,
+            'reason': a.reason, 'cancelled': a.is_cancelled,
+        })
+        if len(appointments) >= 30:
+            break
+
+    meds = []
+    for m in Medication.objects.select_related('patient').order_by('id'):
+        try:
+            pat_user = m.patient.user.username if m.patient.user_id else None
+        except Exception:
+            pat_user = None
+        meds.append({
+            'id': m.id, 'name': m.name, 'dosage': m.dosage,
+            'time': str(m.time), 'times_of_day': m.times_of_day,
+            'days_of_week': m.days_of_week, 'date': f"{m.year}-{m.month:02d}-{m.day:02d}",
+            'patient_user': pat_user,
+        })
+
+    return JsonResponse({
+        'clinic_today': str(today),
+        'users': users,
+        'doctors': doctors,
+        'appointments': appointments,
+        'medications': meds,
+    })
+
+
+@csrf_exempt
 def test_reset_data(request):
     """Wipe clinic data and re-seed with the current encryption key (secret token).
 

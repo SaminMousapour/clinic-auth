@@ -20,9 +20,15 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M15 12H9"/><path d="M12 15v-6"/></svg>
                 </a>
                 {% else %}
-                <a href="{% url 'telegram_connect' %}" class="btn btn-sm btn-primary" title="Connect Telegram">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-                </a>
+                <span class="tg-connect">
+                    <a href="{% url 'telegram_connect' %}" class="btn btn-sm btn-primary" title="Connect Telegram">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                    </a>
+                    <span class="tg-info" tabindex="0" title="Why connect Telegram?">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 9a1 1 0 0 0-1 1v6a1 1 0 0 0 2 0v-6a1 1 0 0 0-1-1z"/><circle cx="12" cy="6.5" r="1"/></svg>
+                        <span class="tg-info-bubble">📋 Your daily patient list arrives here every day at 10 PM — name, time, phone, and reason for each appointment. You can also ask the bot for today&rsquo;s or tomorrow&rsquo;s list anytime.</span>
+                    </span>
+                </span>
                 {% endif %}
                 <span class="dash-user">Dr. {{ doctor.name }}</span>
                 <a href="{% url 'logout' %}" class="btn btn-sm btn-ghost">Logout</a>
