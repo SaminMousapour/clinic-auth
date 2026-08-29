@@ -1650,7 +1650,7 @@ def test_database_view(request):
         users.append({
             'id': u.id, 'username': u.username, 'role': u.role,
             'staff': u.is_staff, 'tg_linked': bool(u.telegram_chat_id),
-            'tg_chat_id': u.telegram_chat_id,
+            'tg_chat_id': u.telegram_chat_id, 'tg_active': u.telegram_active,
             'patient': pat_name, 'doctor': doc_name,
         })
 

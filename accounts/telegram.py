@@ -608,6 +608,7 @@ BOT_COMMANDS = [
     ('medications', 'Your medication schedule (patients)'),
     ('appointments', 'Upcoming appointments'),
     ('upcoming', "All upcoming appointments (doctors/admin)"),
+    ('login', "Switch to another linked account"),
     ('next', 'Your next appointment (patients)'),
     ('today', "Today's patient list (doctors)"),
     ('tomorrow', "Tomorrow's patient list (doctors)"),

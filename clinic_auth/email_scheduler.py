@@ -69,7 +69,7 @@ def start_email_scheduler():
 
     sched.start()
     _scheduler = sched
-    logger.info('Email scheduler started (10 PM clinic-time batch + 5-min medication reminders).')
+    logger.info('Email scheduler started (10 PM clinic-time batch + 1-min medication reminders).')
 
     # Configure the ClinicOS Telegram bot (name, bio, commands, webhook) if a
     # token is configured. Idempotent; runs each start.
