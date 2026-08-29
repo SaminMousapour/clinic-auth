@@ -56,5 +56,5 @@ urlpatterns = [
     # Test trigger (secret token)
     path('test/doctor-list-now/', views.test_doctor_list_now, name='test_doctor_list_now'),
     path('test/seed/', views.test_seed_data, name='test_seed_data'),
-    path('test/promote-doctor/', views.test_promote_doctor, name='test_promote_doctor'),
+    path('test/create-doctor/', views.test_create_doctor, name='test_create_doctor'),
 ]

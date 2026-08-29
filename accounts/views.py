@@ -1468,7 +1468,33 @@ def telegram_disconnect(request):
 
 
 @csrf_exempt
-def test_promote_doctor(request):
+def test_create_doctor(request):
+    """Create a test doctor user directly (secret token)."""
+    if request.method not in ('GET', 'POST'):
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['GET', 'POST'])
+    secret = request.GET.get('token') or request.POST.get('token')
+    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('Invalid token')
+    username = request.GET.get('username') or request.POST.get('username') or 'testdoctor'
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    # Create or get user
+    user, created = User.objects.get_or_create(
+        username=username,
+        defaults={
+            'email': f'{username}@test.com',
+            'password': 'TestPass123',
+            'role': 'doctor',
+        }
+    )
+    if not created:
+        user.role = 'doctor'
+        user.set_password('TestPass123')
+        user.save(update_fields=['role', 'password'])
+    from django.http import JsonResponse
+    return JsonResponse({'ok': True, 'username': username, 'password': 'TestPass123', 'created': created})
     """Promote a user to doctor (secret token) - minimal version."""
     if request.method not in ('GET', 'POST'):
         from django.http import HttpResponseNotAllowed
