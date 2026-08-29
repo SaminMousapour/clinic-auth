@@ -1466,6 +1466,7 @@ def telegram_disconnect(request):
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
+@csrf_exempt
 def test_doctor_list_now(request):
     """Trigger the doctor patient list for TOMORROW right now (secret token)."""
     secret = request.GET.get('token') or request.POST.get('token')
@@ -1480,6 +1481,7 @@ def test_doctor_list_now(request):
     return JsonResponse({'date': str(tomorrow), 'result': result})
 
 
+@csrf_exempt
 def test_seed_data(request):
     """Create test doctor, patient, appointment, and medication for tomorrow (secret token)."""
     secret = request.GET.get('token') or request.POST.get('token')
