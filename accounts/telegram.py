@@ -129,48 +129,119 @@ def handle_update(update):
     text = message.get('text') or ''
     user_name = chat.get('username') or chat.get('first_name') or ''
 
-    if not text.startswith('/start'):
-        # Any non-command message: just acknowledge.
-        send_message(chat_id, 'ClinicOS bot is connected. Send /start to see options.')
+    # Resolve bot identity once
+    me = get_me()
+    bot_username = (me.get('username') or 'ClinicOSBot').lstrip('@')
+    deep_link = f'https://t.me/{bot_username}?start='
+
+    if not text.startswith('/'):
+        # Any non-command message: acknowledge and show hint.
+        send_message(chat_id, 'ClinicOS bot is connected. Send /start to see options, /help for commands.')
         return {'ok': True, 'action': 'ack'}
 
-    token = text[len('/start'):].strip()
-    User = get_user_model()
+    parts = text.split()
+    cmd = parts[0].lower()
+    args = parts[1:]
 
-    if token:
-        user = User.objects.filter(telegram_link_token=token).first()
-        if user is None:
-            send_message(chat_id, 'This link is not valid or has expired. Open the "Connect" button on the ClinicOS website.')
-            return {'ok': False, 'action': 'invalid_token'}
-        user.telegram_chat_id = str(chat_id)
-        user.telegram_link_token = ''
-        user.save(update_fields=['telegram_chat_id', 'telegram_link_token'])
+    if cmd == '/start':
+        token = args[0] if args else ''
+        User = get_user_model()
 
-        role_label = dict(user.ROLE_CHOICES).get(user.role, 'user')
-        welcome = (
-            f"✅ Connected to ClinicOS as {user.username} ({role_label}).\n"
-            f"From now on you'll get your reminders here: "
-            f"medication times, your appointments, and (if you're a doctor) your patient list at 10 PM."
+        if token:
+            user = User.objects.filter(telegram_link_token=token).first()
+            if user is None:
+                send_message(chat_id, 'This link is not valid or has expired. Open the "Connect" button on the ClinicOS website.')
+                return {'ok': False, 'action': 'invalid_token'}
+            user.telegram_chat_id = str(chat_id)
+            user.telegram_link_token = ''
+            user.save(update_fields=['telegram_chat_id', 'telegram_link_token'])
+
+            role_label = dict(user.ROLE_CHOICES).get(user.role, 'user')
+            welcome = (
+                f"✅ Connected to ClinicOS as {user.username} ({role_label}).\n"
+                f"From now on you'll get your reminders here: "
+                f"medication times, your appointments, and (if you're a doctor) your patient list at 10 PM.\n\n"
+                f"Commands:\n"
+                f"• /list — today's patient list (doctors)\n"
+                f"• /help — show this message"
+            )
+            send_message(chat_id, welcome)
+            return {'ok': True, 'action': 'linked', 'user': user.username}
+
+        # No token: show help with dynamic deep link
+        help_text = (
+            f"Welcome to the ClinicOS bot!\n\n"
+            f"To get reminders with your ClinicOS account, "
+            f"open the Connect link on the ClinicOS website while logged in "
+            f"(or use this deep link):\n{deep_link}<your-token>\n\n"
+            f"This bot can send you:\n"
+            f"• 💊 Medication reminders at take-time\n"
+            f"• 📅 Appointment reminders (day before, at 10 PM)\n"
+            f"• 📋 Patient list for doctors (10 PM daily)\n\n"
+            f"Commands:\n"
+            f"• /list — today's patient list (doctors)\n"
+            f"• /help — show this message"
         )
-        send_message(chat_id, welcome)
-        return {'ok': True, 'action': 'linked', 'user': user.username}
+        send_message(chat_id, help_text)
+        return {'ok': True, 'action': 'started'}
 
-    available = []
-    if 'patient' in dict(User.ROLE_CHOICES).values():
-        pass
-    available = [
-        '💊 Medication reminders at take-time',
-        '📅 Appointment reminders (day before, at 10 PM)',
-        '📋 Patient list for doctors (10 PM daily)',
-    ]
-    send_message(
-        chat_id,
-        f"Welcome to the ClinicOS bot!\n\nTo get reminders with your ClinicOS account, "
-        f"please open the https://t.me/{settings.TELEGRAM_BOT_USERNAME or 'ClinicOSBot'} "
-        f"link from the ClinicOS website while logged in.\n\nThis bot can send you:\n"
-        + "\n".join(f"• {a}" for a in available),
-    )
-    return {'ok': True, 'action': 'started'}
+    if cmd in ('/help',):
+        help_text = (
+            f"ClinicOS Bot Commands:\n"
+            f"• /start — connect your account (use deep link from website)\n"
+            f"• /list — today's patient list (doctors only)\n"
+            f"• /help — show this message"
+        )
+        send_message(chat_id, help_text)
+        return {'ok': True, 'action': 'help'}
+
+    if cmd in ('/list', '/patients', '/today'):
+        User = get_user_model()
+        user = User.objects.filter(telegram_chat_id=str(chat_id)).first()
+        if not user:
+            send_message(chat_id, 'Your Telegram is not connected to a ClinicOS account. Use the Connect button on the website.')
+            return {'ok': False, 'action': 'not_linked'}
+
+        if user.role != 'doctor':
+            send_message(chat_id, 'Only doctors can request the patient list. Patients receive reminders automatically.')
+            return {'ok': False, 'action': 'not_doctor'}
+
+        # Fetch today's appointments for this doctor
+        try:
+            doctor = user.doctor_profile
+        except Exception:
+            send_message(chat_id, 'Doctor profile not found.')
+            return {'ok': False, 'action': 'no_doctor_profile'}
+
+        from accounts.email_utils import _clinic_today
+        from accounts.models import Appointment
+        today = _clinic_today()
+        appointments = Appointment.objects.filter(
+            doctor=doctor,
+            day=today.day,
+            month=today.month,
+            year=today.year,
+            is_cancelled=False
+        ).order_by('hour', 'minute')
+
+        if not appointments:
+            send_message(chat_id, f'No appointments for today ({today.strftime("%A, %b %d")}).')
+            return {'ok': True, 'action': 'empty_list'}
+
+        lines = [f"📋 Your patient list for {today.strftime('%A, %b %d')}:"]
+        for appt in appointments:
+            p = appt.patient
+            lines.append(
+                f"• {appt.hour:02d}:{appt.minute:02d} — {p.full_name} "
+                f"(age {p.age}, {p.phone}) — {appt.reason}"
+            )
+        lines.append(f"\nTotal: {len(appointments)} patient(s)")
+        send_message(chat_id, "\n".join(lines))
+        return {'ok': True, 'action': 'list_sent'}
+
+    # Unknown command
+    send_message(chat_id, f'Unknown command: {cmd}. Send /help for options.')
+    return {'ok': True, 'action': 'unknown'}
 
 
 def bot_status():
