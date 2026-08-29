@@ -1563,12 +1563,12 @@ def test_bot_link(request):
     if not username:
         from django.http import HttpResponseBadRequest
         return HttpResponseBadRequest('username required')
+    from django.http import JsonResponse
     from django.contrib.auth import get_user_model
     from accounts.telegram import generate_link_token, bot_link
     User = get_user_model()
     user = User.objects.filter(username=username).first()
     if not user:
-        from django.http import JsonResponse
         return JsonResponse({'ok': False, 'error': 'user not found'}, status=404)
     if request.GET.get('clear') == '1' or request.POST.get('clear') == '1':
         user.telegram_link_token = None
@@ -1577,7 +1577,6 @@ def test_bot_link(request):
         return JsonResponse({'ok': True, 'cleared': True, 'username': username})
     token = generate_link_token(user)
     link = bot_link(token)
-    from django.http import JsonResponse
     return JsonResponse({'ok': True, 'username': username, 'token': token, 'link': link})
 
 
