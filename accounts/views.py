@@ -1513,7 +1513,7 @@ def test_seed_data(request):
         email_encrypted=encrypt_data('patient@test.com'),
     )
 
-    # Create doctor user
+    # Create doctor user (use different IDs to avoid conflicts with seed_doctors)
     doctor_user = User.objects.create_user(
         username='testdoctor',
         email='doctor@test.com',
@@ -1523,8 +1523,8 @@ def test_seed_data(request):
     doctor = Doctor.objects.create(
         user=doctor_user,
         name_encrypted=encrypt_data('Dr. Sara Mohammadi'),
-        medical_number='1001',
-        medical_id='1001',
+        medical_number='2001',
+        medical_id='2001',
         specialty='Cardiology',
         accepted_insurance='bimeh_salamat',
     )
