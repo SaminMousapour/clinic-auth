@@ -1637,6 +1637,7 @@ def test_seed_data(request):
 
     # Book an appointment for the "max" doctor too, if that profile exists
     max_appt = None
+    max_today_appt = None
     max_doctor = Doctor.objects.filter(user__username='max').first()
     if max_doctor:
         max_appt = Appointment.objects.create(
@@ -1651,6 +1652,22 @@ def test_seed_data(request):
             hour=10,
             minute=0,
         )
+        # Also book one for TODAY so /list returns content immediately
+        from accounts.email_utils import _clinic_today
+        today = _clinic_today()
+        today_hour = (now.hour + 1) % 24
+        max_today_appt = Appointment.objects.create(
+            doctor=max_doctor,
+            patient=patient,
+            patient_name='Ali Ahmadi',
+            patient_phone='+989123456789',
+            reason='Routine checkup (today)',
+            day=today.day,
+            month=today.month,
+            year=today.year,
+            hour=today_hour,
+            minute=0,
+        )
 
     from django.http import JsonResponse
     return JsonResponse({
@@ -1660,4 +1677,5 @@ def test_seed_data(request):
         'appointment': f'tomorrow {tomorrow} at 14:30',
         'medication': f'Aspirin at {med_time}',
         'max_appointment': str(max_appt) if max_appt else None,
+        'max_today_appointment': str(max_today_appt) if max_today_appt else None,
     })
