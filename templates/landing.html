@@ -367,18 +367,22 @@
                     </header>
                     <div class="our-doctors-grid">
                         {% for doctor in doctors %}
-                        <article class="doctor-card {{ doctor.specialty|lower|slugify }}">
+                        <article class="doctor-card {{ doctor.card_class|default:doctor.specialty|lower|slugify }}">
                             <div class="doctor-avatar">
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             </div>
                             <div class="doctor-info">
                                 <h3>Dr. {{ doctor.name }}</h3>
                                 <span class="doctor-specialty">{{ doctor.specialty }}</span>
-                                <p class="doctor-desc">{{ doctor.description }}</p>
+                                <p class="doctor-desc">{% if doctor.description %}{{ doctor.description }}{% else %}Provides trusted care at ClinicOS — {% if doctor.accepted_insurance %}accepts {{ doctor.get_accepted_insurance_display }}{% else %}contact the clinic about insurance coverage{% endif %}.{% endif %}</p>
                             </div>
                             <div class="doctor-meta">
                                 <span class="doctor-id">ID: {{ doctor.medical_number }}</span>
+                                {% if doctor.accepted_insurance %}
                                 <span class="doctor-badge">{{ doctor.get_accepted_insurance_display }}</span>
+                                {% else %}
+                                <span class="doctor-badge doctor-badge-empty">Insurance listed on request</span>
+                                {% endif %}
                             </div>
                         </article>
                         {% empty %}

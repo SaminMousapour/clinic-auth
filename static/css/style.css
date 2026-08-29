@@ -4148,3 +4148,6 @@ body {
 .tg-info:hover .tg-info-bubble,
 .tg-info:active .tg-info-bubble,
 .tg-info:focus .tg-info-bubble { display: block; }
+
+/* Added doctors: neutral badge when no insurance is listed yet */
+.doctor-card .doctor-badge.doctor-badge-empty { background: #e2e8f0 !important; color: #475569 !important; }

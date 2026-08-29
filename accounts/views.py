@@ -14,6 +14,32 @@ import json
 
 logger = logging.getLogger(__name__)
 
+# Landing "Our Doctors" cards are themed per specialty. Every doctor must get a
+# themed card class so manually-added doctors render exactly like the seeded ones.
+_SPECIALTY_CSS = {
+    'internal medicine': 'internal-medicine',
+    'neurology': 'neurology',
+    'orthopedics': 'orthopedics',
+    'cardiology': 'cardiology',
+    'endocrinology': 'endocrinology',
+    'psychiatry': 'psychiatry',
+    'dermatology': 'dermatology',
+    'gastroenterology': 'gastroenterology',
+    'pulmonology': 'pulmonology',
+    'family medicine': 'family-medicine',
+}
+_SPECIALTY_CSS_FALLBACK = list(_SPECIALTY_CSS.values())
+
+
+def _doctor_card_class(specialty):
+    """Deterministic card color class for any specialty (known or not)."""
+    import zlib
+    slug = (specialty or 'general').strip().lower()
+    return _SPECIALTY_CSS.get(
+        slug,
+        _SPECIALTY_CSS_FALLBACK[zlib.crc32(slug.encode('utf-8')) % len(_SPECIALTY_CSS_FALLBACK)],
+    )
+
 
 def home(request):
     if request.user.is_authenticated:
@@ -24,7 +50,9 @@ def home(request):
         elif request.user.is_admin_user:
             return redirect('admin_panel')
         return redirect('patient_dashboard')
-    doctors = Doctor.objects.all().order_by('medical_number')
+    doctors = list(Doctor.objects.all().order_by('medical_number'))
+    for d in doctors:
+        d.card_class = _doctor_card_class(d.specialty)
     return render(request, 'landing.html', {'doctors': doctors})
 
 
@@ -776,6 +804,9 @@ def admin_add_doctor(request):
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         medical_number = request.POST.get('medical_number', '').strip()
+        specialty = request.POST.get('specialty', '').strip() or 'General'
+        description = request.POST.get('description', '').strip()
+        insurance_keys = [i for i in request.POST.getlist('accepted_insurance') if i.strip()]
 
         errors = []
         if not name:
@@ -808,13 +839,23 @@ def admin_add_doctor(request):
                 password=medical_number,
                 role='doctor'
             )
-            doctor = Doctor(user=user, medical_number=medical_number, medical_id=medical_id)
+            doctor = Doctor(
+                user=user,
+                medical_number=medical_number,
+                medical_id=medical_id,
+                specialty=specialty,
+                description=description,
+                accepted_insurance=','.join(insurance_keys),
+            )
             doctor.name = name
             doctor.save()
             messages.success(request, f'Dr. {name} added! Username: {username}')
             return redirect('admin_panel')
 
-    return render(request, 'admin/add_doctor.html')
+    return render(request, 'admin/add_doctor.html', {
+        'specialty_choices': sorted(s.title() for s in _SPECIALTY_CSS.keys()),
+        'insurance_choices': INSURANCE_CHOICES,
+    })
 
 
 @login_required
