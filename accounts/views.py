@@ -1464,3 +1464,16 @@ def telegram_disconnect(request):
     request.user.save(update_fields=['telegram_chat_id'])
     messages.info(request, 'Your Telegram was disconnected.')
     return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+@login_required
+def test_doctor_list_now(request):
+    """Trigger the doctor patient list for TODAY right now (admin only)."""
+    if not request.user.is_superuser:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('Admin only')
+    from accounts.email_utils import send_doctor_patient_lists_for_day, _clinic_today
+    today = _clinic_today()
+    result = send_doctor_patient_lists_for_day(today, force=True)
+    from django.http import JsonResponse
+    return JsonResponse({'date': str(today), 'result': result})
