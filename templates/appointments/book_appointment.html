@@ -100,8 +100,7 @@
             {% if d == 0 %}
             <div class="cal-day empty"></div>
             {% else %}
-            <div class="cal-day {% for cw in calendar_weekdays %}{% if cw.day == d %}{% if not cw.is_weekday %}weekend{% elif cw.is_past %}past{% elif cw.is_selected %}selected{% elif cw.is_today %}today{% else %}available{% endif %}{% endif %}"
-                 {% for cw in calendar_weekdays %}{% if cw.day == d and cw.is_weekday and not cw.is_past %}onclick="pickDay({{ d }})"{% endif %}{% endfor %}">
+            <div class="cal-day {% if d|divisibleby:1 %}available{% else %}unavailable{% endif %}">
                 {{ d }}
             </div>
             {% endif %}
