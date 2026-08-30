@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from datetime import date, timedelta
-from .models import User, Doctor, Patient, Appointment, Medication, HealthReading, INSURANCE_CHOICES, PatientVisit, MedicalRecord, Prescription, PatientRecord
+from .models import User, Doctor, Patient, Appointment, Medication, HealthReading, INSURANCE_CHOICES, PatientVisit, MedicalRecord, Prescription, PatientRecord, DoctorOffDay
 import logging
 import json
 
