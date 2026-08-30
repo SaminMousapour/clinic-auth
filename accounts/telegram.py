@@ -75,37 +75,28 @@ def send_markdown(chat_id, text, reply_markup=None):
     return send_message(chat_id, text, parse_mode='Markdown', reply_markup=reply_markup)
 
 
-def main_reply_keyboard(role):
-    """Persistent custom keyboard with main commands per role."""
+def main_reply_keyboard(role, user=None):
+    """Persistent custom keyboard with main commands per role.
+    Only includes /login if the chat has >1 linked account."""
+    show_login = False
+    if user and getattr(user, 'telegram_chat_id', None):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        linked = User.objects.filter(telegram_chat_id=str(user.telegram_chat_id)).count()
+        show_login = linked > 1
+
     if role == 'doctor':
-        return {
-            'keyboard': [
-                ['/today', '/tomorrow'],
-                ['/upcoming', '/appointments'],
-                ['/help', '/login'],
-            ],
-            'resize_keyboard': True,
-            'one_time_keyboard': False,
-            'selective': True,
-        }
-    if role == 'admin':
-        return {
-            'keyboard': [
-                ['/today', '/tomorrow'],
-                ['/upcoming', '/appointments'],
-                ['/help', '/login'],
-            ],
-            'resize_keyboard': True,
-            'one_time_keyboard': False,
-            'selective': True,
-        }
-    # patient
+        rows = [['/today', '/tomorrow'], ['/upcoming', '/appointments'], ['/help']]
+    elif role == 'admin':
+        rows = [['/today', '/tomorrow'], ['/upcoming', '/appointments'], ['/help']]
+    else:
+        rows = [['/medications', '/appointments'], ['/next', '/help']]
+
+    if show_login:
+        rows[-1].append('/login')
+
     return {
-        'keyboard': [
-            ['/medications', '/appointments'],
-            ['/next', '/help'],
-            ['/login'],
-        ],
+        'keyboard': rows,
         'resize_keyboard': True,
         'one_time_keyboard': False,
         'selective': True,
@@ -221,7 +212,7 @@ def _doctor_of(user):
 
 def _welcome_for(user):
     role = user.role or 'patient'
-    kb = main_reply_keyboard(role)
+    kb = main_reply_keyboard(role, user)
     if role == 'doctor':
         return (
             f"✅ *Connected to ClinicOS* as `{user.username}` (Doctor)\n\n"
@@ -260,7 +251,7 @@ def _welcome_for(user):
 
 def _help_for(user):
     role = user.role or 'patient'
-    kb = main_reply_keyboard(role)
+    kb = main_reply_keyboard(role, user)
     if role == 'doctor':
         return (
             "*ClinicOS Doctor Commands*\n\n"
@@ -298,7 +289,7 @@ def _help_for(user):
 
 def _help_for(user):
     role = user.role or 'patient'
-    kb = main_reply_keyboard(role)
+    kb = main_reply_keyboard(role, user)
     if role == 'doctor':
         return (
             "*ClinicOS Doctor Commands*\n\n"
@@ -454,7 +445,7 @@ def handle_update(update):
             return {'ok': False, 'action': 'not_linked'}
 
         target = ' '.join(args).strip().lower()
-        kb = main_reply_keyboard(_linked_user(chat_id).role if _linked_user(chat_id) else 'patient')
+        kb = main_reply_keyboard(_linked_user(chat_id).role if _linked_user(chat_id) else 'patient', _linked_user(chat_id))
         if not target:
             lines = [
                 '*This Telegram is linked to several ClinicOS accounts.*\n'
