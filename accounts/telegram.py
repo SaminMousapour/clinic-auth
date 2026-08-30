@@ -298,35 +298,39 @@ def _help_for(user):
 
 def _help_for(user):
     role = user.role or 'patient'
+    kb = main_reply_keyboard(role)
     if role == 'doctor':
         return (
-            "ClinicOS Doctor Commands:\n"
-            "• /today — today's patient list\n"
-            "• /tomorrow — tomorrow's patient list\n"
-            "• /upcoming — all your upcoming appointments\n"
-            "• /appointments — your upcoming schedule\n"
-            "• /login — switch to another account on this chat\n"
-            "• /help — show this message\n\n"
-            "Every day at 10 PM you'll also receive tomorrow's patient list automatically."
+            "*ClinicOS Doctor Commands*\n\n"
+            "▸ /today — today's patient list\n"
+            "▸ /tomorrow — tomorrow's patient list\n"
+            "▸ /upcoming — all your upcoming appointments\n"
+            "▸ /appointments — your upcoming schedule\n"
+            "▸ /login — switch to another account on this chat\n"
+            "▸ /help — show this message\n\n"
+            "📬 *Daily at 10 PM:* tomorrow's patient list arrives automatically.",
+            kb,
         )
     if role == 'admin':
         return (
-            "ClinicOS Admin Commands:\n"
-            "• /today — today's clinic-wide appointments\n"
-            "• /tomorrow — tomorrow's clinic-wide appointments\n"
-            "• /upcoming — all upcoming appointments\n"
-            "• /appointments — upcoming appointments\n"
-            "• /login — switch to another account on this chat\n"
-            "• /help — show this message"
+            "*ClinicOS Admin Commands*\n\n"
+            "▸ /today — clinic-wide today\n"
+            "▸ /tomorrow — clinic-wide tomorrow\n"
+            "▸ /upcoming — all upcoming appointments\n"
+            "▸ /appointments — all appointments\n"
+            "▸ /login — switch to another account on this chat\n"
+            "▸ /help — show this message",
+            kb,
         )
     return (
-        "ClinicOS Patient Commands:\n"
-        "• /medications — your medication schedule\n"
-        "• /appointments — your upcoming appointments\n"
-        "• /next — your next appointment\n"
-        "• /login — switch to another account on this chat\n"
-        "• /help — show this message\n\n"
-        "You'll also be reminded automatically: medication times and the day before each appointment."
+        "*ClinicOS Patient Commands*\n\n"
+        "▸ /medications — your medication schedule\n"
+        "▸ /appointments — your upcoming appointments\n"
+        "▸ /next — your next appointment\n"
+        "▸ /login — switch to another account on this chat\n"
+        "▸ /help — show this message\n\n"
+        "⏰ *Automatic reminders:* medication times + day-before appointments.",
+        kb,
     )
 
 
