@@ -700,6 +700,9 @@ def doctor_appointments(request):
     doctor = request.user.doctor_profile
     appointments = Appointment.objects.filter(doctor=doctor, is_cancelled=False).select_related('visit').order_by('year', 'month', 'day', 'hour')
 
+    # Get off days for the calendar
+    off_days = set(DoctorOffDay.objects.filter(doctor=doctor).values_list('date', flat=True))
+
     grouped = {}
     day_names = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday', 5: 'Saturday', 6: 'Sunday'}
     for appt in appointments:
@@ -770,7 +773,41 @@ def doctor_appointments(request):
         'appointments': appointments,
         'grouped_days': sorted_days,
         'total_count': appointments.count(),
+        'off_days': off_days,
     })
+
+
+@login_required
+@csrf_exempt
+def doctor_toggle_off_day(request):
+    """Toggle a day off for the doctor (AJAX endpoint)."""
+    if not hasattr(request.user, 'doctor_profile'):
+        return JsonResponse({'ok': False, 'error': 'Access denied.'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST required.'}, status=405)
+
+    doctor = request.user.doctor_profile
+    date_str = request.POST.get('date')
+    reason = request.POST.get('reason', '').strip()
+
+    if not date_str:
+        return JsonResponse({'ok': False, 'error': 'Date required.'}, status=400)
+
+    try:
+        from datetime import date as dt_date
+        off_date = dt_date.fromisoformat(date_str)
+    except ValueError:
+        return JsonResponse({'ok': False, 'error': 'Invalid date format (YYYY-MM-DD).'}, status=400)
+
+    off_day, created = DoctorOffDay.objects.get_or_create(
+        doctor=doctor,
+        date=off_date,
+        defaults={'reason': reason}
+    )
+    if not created:
+        off_day.delete()
+        return JsonResponse({'ok': True, 'action': 'removed', 'date': date_str})
+    return JsonResponse({'ok': True, 'action': 'added', 'date': date_str, 'reason': off_day.reason})
 
 
 # ==================== Admin Views ====================

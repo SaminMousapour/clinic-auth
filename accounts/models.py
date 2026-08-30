@@ -311,3 +311,18 @@ class EmailLog(models.Model):
 
     def __str__(self):
         return self.key
+
+
+class DoctorOffDay(models.Model):
+    """Days when a doctor is off (vacation, conference, etc.)"""
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='off_days')
+    date = models.DateField()
+    reason = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['doctor', 'date']
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Dr. {self.doctor.name} off on {self.date}"

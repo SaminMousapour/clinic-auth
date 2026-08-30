@@ -56,7 +56,37 @@
             </div>
         </div>
 
-        {% if grouped_days %}
+        <!-- Visual Calendar -->
+        <section class="doctor-calendar-section">
+            <div class="calendar-header">
+                <h2>Schedule Calendar</h2>
+                <div class="calendar-nav">
+                    <button class="btn btn-sm btn-ghost" id="calPrev" aria-label="Previous month">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <span id="calMonthYear" class="cal-month-year"></span>
+                    <button class="btn btn-sm btn-ghost" id="calNext" aria-label="Next month">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="calendar-legend">
+                <span class="cal-leg"><i class="cal-dot cal-dot-appt"></i> Appointment</span>
+                <span class="cal-leg"><i class="cal-dot cal-dot-off"></i> Day Off</span>
+                <span class="cal-leg"><i class="cal-dot cal-dot-both"></i> Both</span>
+                <span class="cal-leg"><i class="cal-dot cal-dot-today"></i> Today</span>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </section>
+
+        <div class="view-toggle">
+            <button class="btn btn-sm {% if view_mode != 'calendar' %}btn-primary{% else %}btn-ghost{% endif %}" id="btnListView">List View</button>
+            <button class="btn btn-sm {% if view_mode == 'calendar' %}btn-primary{% else %}btn-ghost{% endif %}" id="btnCalView">Calendar</button>
+        </div>
+
+        <!-- List View (existing) -->
+        <section id="listView" class="view-panel">
+            {% if grouped_days %}
         <div class="doctor-schedule">
             {% for day in grouped_days %}
             <div class="doctor-day-block{% if day.is_past %} day-past{% elif day.is_today %} day-today{% else %} day-future{% endif %}">
@@ -105,6 +135,37 @@
             </div>
             {% endfor %}
         </div>
+        </section>
+
+        <!-- Calendar View -->
+        <section id="calView" class="view-panel" style="display:none;">
+            <div class="doctor-calendar-section">
+                <div class="calendar-header">
+                    <h2>Schedule Calendar</h2>
+                    <div class="calendar-nav">
+                        <button class="btn btn-sm btn-ghost" id="calPrev" aria-label="Previous month">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                        </button>
+                        <span id="calMonthYear" class="cal-month-year"></span>
+                        <button class="btn btn-sm btn-ghost" id="calNext" aria-label="Next month">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="calendar-legend">
+                    <span class="cal-leg"><i class="cal-dot cal-dot-appt"></i> Appointment</span>
+                    <span class="cal-leg"><i class="cal-dot cal-dot-off"></i> Day Off</span>
+                    <span class="cal-leg"><i class="cal-dot cal-dot-both"></i> Both</span>
+                    <span class="cal-leg"><i class="cal-dot cal-dot-today"></i> Today</span>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+            </div>
+        </section>
+
+        <div class="view-toggle">
+            <button class="btn btn-sm btn-primary" id="btnListView">List View</button>
+            <button class="btn btn-sm btn-ghost" id="btnCalView">Calendar</button>
+        </div>
 
         <script>
             function toggleDay(header) {
@@ -126,4 +187,129 @@
         </div>
     </main>
 </div>
+
+{% block scripts %}
+<script>
+    const offDays = new Set([
+        {% for d in off_days %}'{{ d|date:"Y-m-d" }}',{% endfor %}
+    ]);
+    const apptDays = new Set([
+        {% for day in grouped_days %}
+            {% for appt in day.appointments %}'{{ day.date|date:"Y-m-d" }}',{% endfor %}
+        {% endfor %}
+    ]);
+
+    let currentDate = new Date();
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    function renderCalendar() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const monthNames = ['January','February','March','April','May','June',
+            'July','August','September','October','November','December'];
+
+        document.getElementById('calMonthYear').textContent = `${monthNames[month]} ${year}`;
+
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+
+        const dayHeaders = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        dayHeaders.forEach(d => {
+            const el = document.createElement('div');
+            el.className = 'cal-day-header';
+            el.textContent = d;
+            grid.appendChild(el);
+        });
+
+        for (let i = 0; i < firstDay; i++) {
+            const el = document.createElement('div');
+            el.className = 'cal-day empty';
+            grid.appendChild(el);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const cellDate = new Date(year, month, day);
+            cellDate.setHours(0,0,0,0);
+
+            const isOff = offDays.has(dateStr);
+            const hasAppt = apptDays.has(dateStr);
+            const isToday = cellDate.getTime() === today.getTime();
+
+            const el = document.createElement('div');
+            el.className = 'cal-day';
+            el.dataset.date = dateStr;
+            el.innerHTML = `<span class="cal-day-num">${day}</span>`;
+
+            if (isOff && hasAppt) el.classList.add('cal-both');
+            else if (isOff) el.classList.add('cal-off');
+            else if (hasAppt) el.classList.add('cal-appt');
+            if (isToday) el.classList.add('cal-today');
+
+            el.addEventListener('click', () => toggleOffDay(dateStr, el));
+            grid.appendChild(el);
+        }
+    }
+
+    async function toggleOffDay(dateStr, cellEl) {
+        try {
+            const res = await fetch('{% url "doctor_toggle_off_day" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: new URLSearchParams({date: dateStr})
+            });
+            const data = await res.json();
+            if (data.ok) {
+                if (data.action === 'added') {
+                    offDays.add(dateStr);
+                    cellEl.classList.add('cal-off');
+                    cellEl.classList.remove('cal-appt');
+                    if (apptDays.has(dateStr)) cellEl.classList.add('cal-both');
+                } else {
+                    offDays.delete(dateStr);
+                    cellEl.classList.remove('cal-off', 'cal-both');
+                    if (apptDays.has(dateStr)) cellEl.classList.add('cal-appt');
+                }
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (e) {
+            alert('Failed to toggle day off');
+        }
+    }
+
+    document.getElementById('calPrev').addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        renderCalendar();
+    });
+    document.getElementById('calNext').addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        renderCalendar();
+    });
+
+    document.getElementById('btnListView').addEventListener('click', () => {
+        document.getElementById('listView').style.display = 'block';
+        document.getElementById('calView').style.display = 'none';
+        document.getElementById('btnListView').classList.add('btn-primary');
+        document.getElementById('btnListView').classList.remove('btn-ghost');
+        document.getElementById('btnCalView').classList.remove('btn-primary');
+        document.getElementById('btnCalView').classList.add('btn-ghost');
+    });
+    document.getElementById('btnCalView').addEventListener('click', () => {
+        document.getElementById('listView').style.display = 'none';
+        document.getElementById('calView').style.display = 'block';
+        document.getElementById('btnCalView').classList.add('btn-primary');
+        document.getElementById('btnCalView').classList.remove('btn-ghost');
+        document.getElementById('btnListView').classList.remove('btn-primary');
+        document.getElementById('btnListView').classList.add('btn-ghost');
+    });
+
+    renderCalendar();
+</script>
 {% endblock %}

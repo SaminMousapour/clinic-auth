@@ -18,6 +18,7 @@ urlpatterns = [
 
     # Doctor appointment URLs
     path('doctor/appointments/', views.doctor_appointments, name='doctor_appointments'),
+    path('doctor/appointments/toggle-off-day/', views.doctor_toggle_off_day, name='doctor_toggle_off_day'),
     path('doctor/insurance-settings/', views.doctor_insurance_settings, name='doctor_insurance_settings'),
     path('doctor/visit/<int:appointment_id>/', views.doctor_patient_visit, name='doctor_patient_visit'),
 
