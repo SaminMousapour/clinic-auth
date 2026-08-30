@@ -690,15 +690,14 @@ def bot_status():
 
 
 BOT_BIO = (
-    "ClinicOS bot - your clinic companion.\n\n"
-    "Patients receive medication reminders at the right time and a heads-up "
-    "the day before each appointment. Doctors receive their patient list every "
-    "day at 10 PM with the patient's name, appointment time, phone, and reason.\n\n"
-    "Just press Start and connect using the link on the ClinicOS website "
-    "to begin receiving your reminders."
+    "🏥 ClinicOS — your clinical companion.\n\n"
+    "💊 *Patients:* medication reminders at dose time + appointment heads-up the day before.\n"
+    "👨‍⚕️ *Doctors:* daily patient list at 10 PM — name, time, phone, reason.\n"
+    "🏢 *Admins:* clinic-wide overview + daily summary.\n\n"
+    "Tap *Start*, connect via the ClinicOS website, and you're set."
 )
 
-BOT_SHORT_BIO = "ClinicOS reminders: medications, appointments, and doctor patient lists."
+BOT_SHORT_BIO = "ClinicOS: smart reminders for patients, daily lists for doctors."
 
 BOT_COMMANDS = [
     ('start', 'Connect your ClinicOS account'),
