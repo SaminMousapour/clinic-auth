@@ -4151,3 +4151,57 @@ body {
 
 /* Added doctors: neutral badge when no insurance is listed yet */
 .doctor-card .doctor-badge.doctor-badge-empty { background: #e2e8f0 !important; color: #475569 !important; }
+
+/* Fun callout pointing to the Telegram connect button */
+.tg-connect { position: relative; }
+.tg-callout {
+    position: absolute;
+    top: 50%;
+    right: calc(100% + 12px);
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff5f5;
+    border: 2px solid #fc8181;
+    border-radius: 20px;
+    padding: 6px 10px 6px 8px;
+    box-shadow: 0 4px 16px rgba(229, 62, 62, 0.2);
+    animation: callout-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+               callout-bounce 2s ease-in-out 0.6s infinite;
+    white-space: nowrap;
+    z-index: 10;
+}
+.callout-arrow {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    animation: arrow-wiggle 1s ease-in-out infinite;
+    transform-origin: center right;
+}
+.callout-text {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #c53030;
+    letter-spacing: 0.02em;
+}
+
+@keyframes callout-enter {
+    0% { opacity: 0; transform: translateY(-50%) translateX(16px) scale(0.8); }
+    60% { transform: translateY(-50%) translateX(-4px) scale(1.05); }
+    100% { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
+}
+@keyframes callout-bounce {
+    0%, 100% { transform: translateY(-50%) translateX(0); }
+    50% { transform: translateY(-50%) translateX(-3px); }
+}
+@keyframes arrow-wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+}
+
+/* Hide callout on very small screens to avoid overflow */
+@media (max-width: 480px) {
+    .tg-callout { display: none; }
+}
