@@ -100,10 +100,8 @@
             {% if d == 0 %}
             <div class="cal-day empty"></div>
             {% else %}
-            {% with item=calendar_weekdays|dictsort:"day"|slice:":1" %}
-            {% endwith %}
             <div class="cal-day {% for cw in calendar_weekdays %}{% if cw.day == d %}{% if not cw.is_weekday %}weekend{% elif cw.is_past %}past{% elif cw.is_selected %}selected{% elif cw.is_today %}today{% else %}available{% endif %}{% endif %}"
-                 {% for cw in calendar_weekdays %}{% if cw.day == d and cw.is_weekday and not cw.is_past %}onclick="pickDay({{ d }})"{% endif %}{% endfor %}>
+                 {% for cw in calendar_weekdays %}{% if cw.day == d and cw.is_weekday and not cw.is_past %}onclick="pickDay({{ d }})"{% endif %}{% endfor %}">
                 {{ d }}
             </div>
             {% endif %}
@@ -137,12 +135,6 @@
                     <span class="slot-icon">&#10006;</span>
                     <span class="slot-time">{{ hour }}:00</span>
                     <span class="slot-status-text">Booked</span>
-                </div>
-                {% elif hour in booked_hours or availability_info|default:{}."|stringformat:"s" == "off" %}
-                <div class="time-slot unavailable">
-                    <span class="slot-icon">&#10006;</span>
-                    <span class="slot-time">{{ hour }}:00</span>
-                    <span class="slot-status-text">Off Day</span>
                 </div>
                 {% else %}
                 <div class="time-slot available" onclick="selectTime(this, {{ hour }})">
