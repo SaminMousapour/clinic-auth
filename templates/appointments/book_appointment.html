@@ -99,9 +99,12 @@
             {% for d in week %}
             {% if d == 0 %}
             <div class="cal-day empty"></div>
+            {% elif d in off_day_days %}
+            <div class="cal-day off-day">
+                {{ d }}<span class="cal-day-label-off">OFF</span>
+            </div>
             {% else %}
-            <div class="cal-day{% if d|divisibleby:1 %} available{% else %} unavailable{% endif %}}"
-onclick="pickDay({{ d }})">
+            <div class="cal-day available" onclick="pickDay({{ d }})">
                 {{ d }}
             </div>
             {% endif %}
@@ -121,6 +124,9 @@ onclick="pickDay({{ d }})">
 
         <div class="section">
             <h3 class="section-title">Available Times - {{ month_name }} {{ selected_day }}</h3>
+            {% if is_off_day %}
+            <div class="alert warning" style="margin-bottom:14px;">Dr. {{ selected_doctor.name }} is off on this day. Please pick another day.</div>
+            {% endif %}
             <p class="legend">
                 <span class="legend-item"><span class="dot green"></span> Available</span>
                 <span class="legend-item"><span class="dot red"></span> Booked</span>
@@ -129,6 +135,15 @@ onclick="pickDay({{ d }})">
                 {% endif %}
             </p>
             <div class="time-slots">
+                {% if is_off_day %}
+                {% for hour in hours %}
+                <div class="time-slot off-day">
+                    <span class="slot-icon">&#10006;</span>
+                    <span class="slot-time">{{ hour }}:00</span>
+                    <span class="slot-status-text">Off Day</span>
+                </div>
+                {% endfor %}
+                {% else %}
                 {% for hour in hours %}
                 {% if hour in booked_hours %}
                 <div class="time-slot booked">
@@ -144,6 +159,7 @@ onclick="pickDay({{ d }})">
                 </div>
                 {% endif %}
                 {% endfor %}
+                {% endif %}
             </div>
         </div>
 

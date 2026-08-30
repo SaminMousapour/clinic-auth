@@ -517,6 +517,7 @@ def appointment_book(request):
 
     selected_doctor = None
     booked_hours = []
+    is_off_day = False
 
     now = timezone.now()
     selected_day = None
@@ -611,6 +612,15 @@ def appointment_book(request):
     else:
         is_off_day = False
 
+    off_day_days = []
+    if selected_doctor:
+        off_day_dates = DoctorOffDay.objects.filter(
+            doctor=selected_doctor,
+            date__year=selected_year,
+            date__month=selected_month,
+        ).values_list('date', flat=True)
+        off_day_days = sorted(dt.day for dt in off_day_dates)
+
     import calendar as cal
     cal_obj = cal.Calendar(firstweekday=5)
     month_days = cal_obj.monthdayscalendar(selected_year, selected_month)
@@ -660,6 +670,9 @@ def appointment_book(request):
         from datetime import date as dt_date
         try:
             check_date = dt_date(year, month, day)
+            if DoctorOffDay.objects.filter(doctor=doctor, date=check_date).exists():
+                messages.error(request, 'This doctor is off on this day. Please choose another day.')
+                return redirect(f"{request.path}?doctor_id={doctor_id}")
             if check_date.weekday() in (5, 6):
                 messages.error(request, 'Cannot book appointments on Saturday or Sunday.')
                 return redirect(f"{request.path}?doctor_id={doctor_id}")
@@ -716,6 +729,8 @@ def appointment_book(request):
         'specialties': specialties,
         'specialty_filter': specialty_filter,
         'availability_info': availability_info,
+        'is_off_day': is_off_day,
+        'off_day_days': off_day_days,
     })
 
 
