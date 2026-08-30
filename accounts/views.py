@@ -422,20 +422,19 @@ def register_patient(request):
                     errors.append('This email is already registered.')
                     break
 
+        username = request.POST.get('username', '').strip()
+        if not username:
+            errors.append('Username is required.')
+        elif User.objects.filter(username__iexact=username).exists():
+            errors.append('This username is already taken. Please choose another.')
+
         if errors:
             for e in errors:
                 messages.error(request, e)
             return render(request, 'register.html', {
                 'insurance_choices': Patient.INSURANCE_CHOICES,
-                'form_data': {'insurances': insurance_list, 'first_name': first_name, 'last_name': last_name, 'age': age, 'phone': phone, 'email': email},
+                'form_data': {'insurances': insurance_list, 'first_name': first_name, 'last_name': last_name, 'age': age, 'phone': phone, 'email': email, 'username': username},
             })
-
-        base_username = first_name.lower().replace(' ', '')
-        username = base_username
-        counter = 1
-        while User.objects.filter(username=username).exists():
-            username = f"{base_username}{counter}"
-            counter += 1
 
         user = User.objects.create_user(
             username=username,
@@ -804,6 +803,7 @@ def admin_add_doctor(request):
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         medical_number = request.POST.get('medical_number', '').strip()
+        username = request.POST.get('username', '').strip()
         specialty = request.POST.get('specialty', '').strip() or 'General'
         description = request.POST.get('description', '').strip()
         insurance_keys = [i for i in request.POST.getlist('accepted_insurance') if i.strip()]
@@ -815,18 +815,15 @@ def admin_add_doctor(request):
             errors.append('Medical number must be exactly 4 digits.')
         if Doctor.objects.filter(medical_number=medical_number).exists():
             errors.append('This medical number already exists.')
+        if not username:
+            errors.append('Username is required.')
+        elif User.objects.filter(username__iexact=username).exists():
+            errors.append('This username is already taken. Please choose another.')
 
         if errors:
             for e in errors:
                 messages.error(request, e)
         else:
-            base_username = name.lower().replace(' ', '')
-            username = base_username
-            counter = 1
-            while User.objects.filter(username=username).exists():
-                username = f"{base_username}{counter}"
-                counter += 1
-
             # Generate unique medical_id
             medical_id = medical_number
             counter = 1
