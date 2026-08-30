@@ -127,10 +127,13 @@ def bot_link(extra=None):
 
 def generate_link_token(user):
     """Create a fresh one-time link token for a user (idempotent per call)."""
-    token = secrets.token_urlsafe(24)
-    user.telegram_link_token = token
+    # If user already has a token, reuse it (idempotent)
+    if user.telegram_link_token:
+        return user.telegram_link_token
+    # Clear any empty/default token and generate a fresh one
+    user.telegram_link_token = secrets.token_urlsafe(24)
     user.save(update_fields=['telegram_link_token'])
-    return token
+    return user.telegram_link_token
 
 
 def set_webhook(url):
