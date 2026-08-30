@@ -51,8 +51,7 @@
         {% if doctors %}
         <div class="doctor-list">
             {% for doc in doctors %}
-            {% availability_info=availability_info|default:{} %}
-            <a href="?doctor_id={{ doc.id }}{% if specialty_filter %}&specialty={{ specialty_filter }}{% endif %}{% if insurance_filter %}&insurance={{ insurance_filter }}{% endif %}" class="doctor-card {% if availability_info.doc.id.has_off_day|default:False %}unavailable{% endif %}">
+            <a href="?doctor_id={{ doc.id }}{% if specialty_filter %}&specialty={{ specialty_filter }}{% endif %}{% if insurance_filter %}&insurance={{ insurance_filter }}{% endif %}" class="doctor-card">
                 <div class="doctor-avatar">👨‍⚕️</div>
                 <div class="doctor-info">
                     <div class="doctor-name">Dr. {{ doc.name }}</div>
@@ -139,7 +138,7 @@
                     <span class="slot-time">{{ hour }}:00</span>
                     <span class="slot-status-text">Booked</span>
                 </div>
-                {% elif availability_info.has_off_day|default:False %}
+                {% elif hour in booked_hours or availability_info|default:{}."|stringformat:"s" == "off" %}
                 <div class="time-slot unavailable">
                     <span class="slot-icon">&#10006;</span>
                     <span class="slot-time">{{ hour }}:00</span>
