@@ -218,9 +218,19 @@
             el.dataset.date = dateStr;
             el.innerHTML = `<span class="cal-day-num">${day}</span>`;
 
-            if (isOff && hasAppt) el.classList.add('cal-both');
-            else if (isOff) el.classList.add('cal-off');
-            else if (hasAppt) el.classList.add('cal-appt');
+            if (isOff && hasAppt) {
+                el.classList.add('cal-both');
+                el.dataset.status = 'both';
+            }
+            else if (isOff) {
+                el.classList.add('cal-off');
+                el.dataset.status = 'off';
+                el.innerHTML = `<span class="cal-day-num">${day}</span><span class="cal-day-label-off">OFF</span>`;
+            }
+            else if (hasAppt) {
+                el.classList.add('cal-appt');
+                el.dataset.status = 'appt';
+            }
             if (isToday) el.classList.add('cal-today');
 
             el.addEventListener('click', () => toggleOffDay(dateStr, el));
