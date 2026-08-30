@@ -247,6 +247,7 @@ def google_complete_doctor_profile(request):
     })
 
 
+@csrf_exempt
 def login_view(request):
     if request.method == 'POST':
         identifier = request.POST.get('identifier', '').strip()
