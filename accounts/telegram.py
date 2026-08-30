@@ -54,15 +54,62 @@ def api_call(method, payload=None):
         return {'ok': False, 'error': str(e)}
 
 
-def send_message(chat_id, text):
-    """Send a plain-text message to a chat_id. Best-effort."""
+def send_message(chat_id, text, parse_mode=None, reply_markup=None):
+    """Send a message to a chat_id. Supports Markdown/HTML and inline keyboards."""
     if not chat_id or not text:
         return {'ok': False, 'error': 'missing chat_id or text'}
-    return api_call('sendMessage', {
+    payload = {
         'chat_id': chat_id,
         'text': text,
         'disable_web_page_preview': True,
-    })
+    }
+    if parse_mode:
+        payload['parse_mode'] = parse_mode
+    if reply_markup:
+        payload['reply_markup'] = json.dumps(reply_markup)
+    return api_call('sendMessage', payload)
+
+
+def send_markdown(chat_id, text, reply_markup=None):
+    """Convenience: send Markdown-formatted message."""
+    return send_message(chat_id, text, parse_mode='Markdown', reply_markup=reply_markup)
+
+
+def main_reply_keyboard(role):
+    """Persistent custom keyboard with main commands per role."""
+    if role == 'doctor':
+        return {
+            'keyboard': [
+                ['/today', '/tomorrow'],
+                ['/upcoming', '/appointments'],
+                ['/help', '/login'],
+            ],
+            'resize_keyboard': True,
+            'one_time_keyboard': False,
+            'selective': True,
+        }
+    if role == 'admin':
+        return {
+            'keyboard': [
+                ['/today', '/tomorrow'],
+                ['/upcoming', '/appointments'],
+                ['/help', '/login'],
+            ],
+            'resize_keyboard': True,
+            'one_time_keyboard': False,
+            'selective': True,
+        }
+    # patient
+    return {
+        'keyboard': [
+            ['/medications', '/appointments'],
+            ['/next', '/help'],
+            ['/login'],
+        ],
+        'resize_keyboard': True,
+        'one_time_keyboard': False,
+        'selective': True,
+    }
 
 
 def get_me():
@@ -174,36 +221,78 @@ def _doctor_of(user):
 
 def _welcome_for(user):
     role = user.role or 'patient'
+    kb = main_reply_keyboard(role)
     if role == 'doctor':
         return (
-            f"✅ Connected to ClinicOS as {user.username} (Doctor).\n"
-            f"From now on you'll receive your patient list here every day at 10 PM.\n\n"
-            f"Commands:\n"
-            f"• /today — today's patient list\n"
-            f"• /tomorrow — tomorrow's patient list\n"
-            f"• /upcoming — all your upcoming appointments\n"
-            f"• /appointments — your upcoming schedule\n"
-            f"• /help — show this message"
+            f"✅ *Connected to ClinicOS* as `{user.username}` (Doctor)\n\n"
+            f"📋 You'll receive your *daily patient list* at 10 PM.\n\n"
+            f"*Quick commands:*\n"
+            f"▸ /today — today's patients\n"
+            f"▸ /tomorrow — tomorrow's patients\n"
+            f"▸ /upcoming — all upcoming appointments\n"
+            f"▸ /appointments — your schedule\n"
+            f"▸ /help — full help",
+            kb,
         )
     if role == 'admin':
         return (
-            f"✅ Connected to ClinicOS as {user.username} (Admin).\n\n"
-            f"Commands:\n"
-            f"• /today — today's clinic-wide appointment list\n"
-            f"• /tomorrow — tomorrow's clinic-wide appointment list\n"
-            f"• /upcoming — all upcoming appointments\n"
-            f"• /appointments — upcoming appointments\n"
-            f"• /help — show this message"
+            f"✅ *Connected to ClinicOS* as `{user.username}` (Admin)\n\n"
+            f"*Quick commands:*\n"
+            f"▸ /today — clinic-wide today\n"
+            f"▸ /tomorrow — clinic-wide tomorrow\n"
+            f"▸ /upcoming — all upcoming\n"
+            f"▸ /appointments — all appointments\n"
+            f"▸ /help — full help",
+            kb,
         )
     return (
-        f"✅ Connected to ClinicOS as {user.username} (Patient).\n"
-        f"From now on you'll receive your reminders here: "
-        f"medication times and the day before each appointment.\n\n"
-        f"Commands:\n"
-        f"• /medications — your medication schedule\n"
-        f"• /appointments — your upcoming appointments\n"
-        f"• /next — your next appointment\n"
-        f"• /help — show this message"
+        f"✅ *Connected to ClinicOS* as `{user.username}` (Patient)\n\n"
+        f"💊 You'll get *medication reminders* at dose time.\n"
+        f"📅 *Appointment heads-up* the day before.\n\n"
+        f"*Quick commands:*\n"
+        f"▸ /medications — today's medicines\n"
+        f"▸ /appointments — your appointments\n"
+        f"▸ /next — next appointment\n"
+        f"▸ /help — full help",
+        kb,
+    )
+
+
+def _help_for(user):
+    role = user.role or 'patient'
+    kb = main_reply_keyboard(role)
+    if role == 'doctor':
+        return (
+            "*ClinicOS Doctor Commands*\n\n"
+            "▸ /today — today's patient list\n"
+            "▸ /tomorrow — tomorrow's patient list\n"
+            "▸ /upcoming — all your upcoming appointments\n"
+            "▸ /appointments — your upcoming schedule\n"
+            "▸ /login — switch account on this chat\n"
+            "▸ /help — show this message\n\n"
+            "📬 *Daily at 10 PM:* tomorrow's patient list arrives automatically.",
+            kb,
+        )
+    if role == 'admin':
+        return (
+            "*ClinicOS Admin Commands*\n\n"
+            "▸ /today — clinic-wide today\n"
+            "▸ /tomorrow — clinic-wide tomorrow\n"
+            "▸ /upcoming — all upcoming appointments\n"
+            "▸ /appointments — all appointments\n"
+            "▸ /login — switch account on this chat\n"
+            "▸ /help — show this message",
+            kb,
+        )
+    return (
+        "*ClinicOS Patient Commands*\n\n"
+        "▸ /medications — your medication schedule\n"
+        "▸ /appointments — your upcoming appointments\n"
+        "▸ /next — your next appointment\n"
+        "▸ /login — switch account on this chat\n"
+        "▸ /help — show this message\n\n"
+        "⏰ *Automatic reminders:* medication times + day-before appointments.",
+        kb,
     )
 
 
@@ -244,8 +333,8 @@ def _help_for(user):
 def _format_appointment(appt):
     d = appt.doctor
     return (
-        f"• {date(appt.year, appt.month, appt.day).strftime('%a, %b %d')} "
-        f"{appt.hour:02d}:{appt.minute:02d} — Dr. {d.name} ({d.specialty})"
+        f"▸ *{date(appt.year, appt.month, appt.day).strftime('%a, %b %d')}* "
+        f"`{appt.hour:02d}:{appt.minute:02d}` — Dr. {d.name} ({d.specialty})"
         + (f" — {appt.reason}" if appt.reason else "")
     )
 
@@ -253,8 +342,8 @@ def _format_appointment(appt):
 def _format_patient_line(appt):
     p = appt.patient
     return (
-        f"• {appt.hour:02d}:{appt.minute:02d} — {p.full_name} "
-        f"(age {p.age}, {p.phone}) — {appt.reason}"
+        f"▸ `{appt.hour:02d}:{appt.minute:02d}` — *{p.full_name}* "
+        f"(age {p.age}, `{p.phone}`) — {appt.reason}"
     )
 
 
@@ -296,12 +385,13 @@ def handle_update(update):
     if not cmd:
         # Plain-text message: acknowledge and show a hint for the linked role.
         user = _linked_user(chat_id)
+        kb = main_reply_keyboard(user.role) if user else None
         if user and user.role == 'doctor':
-            send_message(chat_id, 'Doctor menu: send /today for today\u2019s patients, /tomorrow for tomorrow\u2019s, or /help.')
+            send_markdown(chat_id, '👨‍⚕️ Doctor menu — tap a button below or send /today, /tomorrow, /upcoming, /help.', kb)
         elif user:
-            send_message(chat_id, 'Your menu: send /medications, /appointments, or /next. Or /help for all commands.')
+            send_markdown(chat_id, '👤 Your menu — tap a button below or send /medications, /appointments, /next, /help.', kb)
         else:
-            send_message(chat_id, 'ClinicOS bot is connected. Use the Connect link on the ClinicOS website to link your account, then /help.')
+            send_markdown(chat_id, '🤖 ClinicOS bot is connected. Use the Connect link on the website to link your account, then /help.')
         return {'ok': True, 'action': 'ack'}
 
     if cmd == '/start':
@@ -317,35 +407,38 @@ def handle_update(update):
             user.telegram_link_token = None
             user.save(update_fields=['telegram_chat_id', 'telegram_link_token'])
             _activate_for_chat(user, str(chat_id))
-            send_message(chat_id, _welcome_for(user))
+            text, kb = _welcome_for(user)
+            send_markdown(chat_id, text, kb)
             return {'ok': True, 'action': 'linked', 'user': user.username}
 
-        # No token: show connection instructions (role-specific once linked)
-        help_text = (
-            f"Welcome to the ClinicOS bot!\n\n"
-            f"To link your ClinicOS account, open the Connect (blue paper-plane) "
-            f"button on the ClinicOS website while logged in — or use this deep link:\n"
-            f"{deep_link}<your-token>\n\n"
+        # No token: show connection instructions
+        text = (
+            f"*Welcome to ClinicOS!*\n\n"
+            f"To link your account, open the *Connect* button on the ClinicOS website "
+            f"while logged in — or use this deep link:\n"
+            f"`{deep_link}<your-token>`\n\n"
             f"Once connected you'll get:\n"
-            f"• 💊 Medication reminders at take-time (patients)\n"
-            f"• 📅 Appointment reminders the day before (patients)\n"
-            f"• 📋 Your daily patient list at 10 PM (doctors)\n\n"
+            f"▸ 💊 Medication reminders at dose time (patients)\n"
+            f"▸ 📅 Appointment reminders the day before (patients)\n"
+            f"▸ 📋 Daily patient list at 10 PM (doctors)\n\n"
             f"Then send /help to see your commands."
         )
-        send_message(chat_id, help_text)
+        send_markdown(chat_id, text)
         return {'ok': True, 'action': 'started'}
 
     if cmd in ('/help',):
         user = _linked_user(chat_id)
         if user:
-            send_message(chat_id, _help_for(user))
+            text, kb = _help_for(user)
+            send_markdown(chat_id, text, kb)
         else:
-            send_message(chat_id, (
+            text = (
                 "ClinicOS bot is connected.\n"
                 f"To get your personal reminders, open the Connect link on the "
-                f"ClinicOS website while logged in (or use {deep_link}<your-token>), "
+                f"ClinicOS website while logged in (or use `{deep_link}<your-token>`), "
                 f"then send /help to see your commands."
-            ))
+            )
+            send_markdown(chat_id, text)
         return {'ok': True, 'action': 'help'}
 
     # ---------------- Switch account (one chat, several accounts) ----------------
@@ -357,16 +450,17 @@ def handle_update(update):
             return {'ok': False, 'action': 'not_linked'}
 
         target = ' '.join(args).strip().lower()
+        kb = main_reply_keyboard(_linked_user(chat_id).role if _linked_user(chat_id) else 'patient')
         if not target:
             lines = [
-                'This Telegram is linked to several ClinicOS accounts. '
-                'Use /login <username> or reply with a number to pick the active one:'
+                '*This Telegram is linked to several ClinicOS accounts.*\n'
+                'Use `/login <username>` or reply with a number to pick the active one:'
             ]
             for i, acc in enumerate(accounts, 1):
-                marker = '  (active)' if acc.telegram_active else ''
-                lines.append(f"{i}. {acc.username} ({acc.role}){marker}")
-            lines.append('\nFor example: /login davidmaxwell')
-            send_message(chat_id, '\n'.join(lines))
+                marker = ' ✅' if acc.telegram_active else ''
+                lines.append(f"{i}. `{acc.username}` ({acc.role}){marker}")
+            lines.append('\nExample: `/login davidmaxwell`')
+            send_markdown(chat_id, '\n'.join(lines), kb)
             return {'ok': True, 'action': 'list_accounts'}
 
         if target.isdigit():
@@ -376,15 +470,16 @@ def handle_update(update):
             match = next((a for a in accounts if a.username.lower() == target), None)
 
         if not match:
-            send_message(chat_id, f'No ClinicOS account "{target}" is linked to this Telegram. Send /login to see the list.')
+            send_markdown(chat_id, f'No ClinicOS account `{target}` is linked to this Telegram. Send /login to see the list.', kb)
             return {'ok': False, 'action': 'bad_account'}
 
         if match.telegram_active:
-            send_message(chat_id, f'Already operating as {match.username} ({match.role}).')
+            send_markdown(chat_id, f'Already operating as `{match.username}` ({match.role}).', kb)
             return {'ok': True, 'action': 'already_active'}
 
         _activate_for_chat(match, str(chat_id))
-        send_message(chat_id, f"Switched to {match.username} ({match.role}). " + _welcome_for(match))
+        text, new_kb = _welcome_for(match)
+        send_markdown(chat_id, text, new_kb)
         return {'ok': True, 'action': 'switched', 'user': match.username}
 
     # ---------------- Patient commands ----------------
@@ -416,33 +511,35 @@ def handle_update(update):
                     applicable.append(med)
             applicable.sort(key=lambda m: m.time)
 
+            kb = main_reply_keyboard(user.role)
             if not applicable:
-                send_message(chat_id, f'You have no medications scheduled for today ({today.strftime("%A, %b %d")}).')
+                send_markdown(chat_id, f'💊 You have no medications scheduled for today ({today.strftime("%A, %b %d")}).', kb)
                 return {'ok': True, 'action': 'meds_sent'}
 
-            lines = [f"💊 Your medications for {today.strftime('%A, %b %d')}:"]
+            lines = [f"💊 *Your medications for {today.strftime('%A, %b %d')}:*"]
             for med in applicable:
-                lines.append(f"• {med.name} ({med.dosage}) — {med.get_times_display()}")
-            send_message(chat_id, "\n".join(lines))
+                lines.append(f"▸ *{med.name}* ({med.dosage}) — `{med.get_times_display()}`")
+            send_markdown(chat_id, "\n".join(lines), kb)
             return {'ok': True, 'action': 'meds_sent'}
 
         upcoming = _upcoming_appointments(
             Appointment.objects.filter(patient=patient, is_cancelled=False), today
         )
 
+        kb = main_reply_keyboard(user.role)
         if cmd == '/next':
             if not upcoming:
-                send_message(chat_id, 'You have no upcoming appointments. Contact the clinic to book one.')
+                send_markdown(chat_id, '📅 You have no upcoming appointments. Contact the clinic to book one.', kb)
                 return {'ok': True, 'action': 'empty_appointments'}
-            msg = "📅 Your next appointment:\n" + _format_appointment(upcoming[0])
-            send_message(chat_id, msg)
+            msg = "📅 *Your next appointment:*\n" + _format_appointment(upcoming[0])
+            send_markdown(chat_id, msg, kb)
             return {'ok': True, 'action': 'appointments_sent'}
 
         if not upcoming:
-            send_message(chat_id, 'You have no upcoming appointments. Contact the clinic to book one.')
+            send_markdown(chat_id, '📅 You have no upcoming appointments. Contact the clinic to book one.', kb)
             return {'ok': True, 'action': 'empty_appointments'}
-        lines = ["📅 Your upcoming appointments:"] + [_format_appointment(a) for a in upcoming[:6]]
-        send_message(chat_id, "\n".join(lines))
+        lines = ["📅 *Your upcoming appointments:*"] + [_format_appointment(a) for a in upcoming[:6]]
+        send_markdown(chat_id, "\n".join(lines), kb)
         return {'ok': True, 'action': 'appointments_sent'}
 
     # ---------------- Doctor commands ------------------------------------
@@ -471,28 +568,33 @@ def handle_update(update):
             appointments = appointments.filter(doctor=doctor)
         appointments = appointments.order_by('doctor_id', 'hour', 'minute')
 
+        kb = main_reply_keyboard(user.role)
         if not appointments:
             hint = (' Send /today to see today\u2019s list.' if cmd == '/tomorrow'
                     else ' Send /tomorrow to see tomorrow\u2019s list.')
             kind = 'clinic' if (is_admin and not doctor) else 'doctor\u2019s'
-            send_message(chat_id, f'No {kind} appointments for {target.strftime("%A, %b %d")}.{hint}')
+            send_markdown(chat_id, f'📋 No {kind} appointments for {target.strftime("%A, %b %d")}.{hint}', kb)
             return {'ok': True, 'action': 'empty_list'}
 
         if is_admin and not doctor:
-            lines = [f"📋 Clinic-wide appointments for {target.strftime('%A, %b %d')}:"]
+            lines = [f"📋 *Clinic-wide appointments for {target.strftime('%A, %b %d')}:*"]
             for appt in appointments:
                 p = appt.patient
                 d = appt.doctor
                 lines.append(
-                    f"• {appt.hour:02d}:{appt.minute:02d} — Dr. {d.name}: {p.full_name} "
-                    f"(age {p.age}, {p.phone}) — {appt.reason}"
+                    f"▸ `{appt.hour:02d}:{appt.minute:02d}` — Dr. {d.name}: *{p.full_name}* "
+                    f"(age {p.age}, `{p.phone}`) — {appt.reason}"
                 )
-            lines.append(f"\nTotal: {len(appointments)} appointment(s)")
+            lines.append(f"\n*Total: {len(appointments)} appointment(s)*")
         else:
-            lines = [f"📋 Your patient list for {target.strftime('%A, %b %d')}:"]
-            lines += [_format_patient_line(a) for a in appointments]
-            lines.append(f"\nTotal: {len(appointments)} patient(s)")
-        send_message(chat_id, "\n".join(lines))
+            lines = [f"📋 *Your patient list for {target.strftime('%A, %b %d')}:*"]
+            for a in appointments:
+                lines.append(
+                    f"▸ `{a.hour:02d}:{a.minute:02d}` — *{a.patient.full_name}* "
+                    f"(age {a.patient.age}, `{a.patient.phone}`) — {a.reason}"
+                )
+            lines.append(f"\n*Total: {len(appointments)} patient(s)*")
+        send_markdown(chat_id, "\n".join(lines), kb)
         return {'ok': True, 'action': 'list_sent'}
 
     # ---------------- Shared: upcoming appointments (doctor schedule or patient) ----------------
@@ -519,45 +621,46 @@ def handle_update(update):
             return {'ok': False, 'action': 'no_profile'}
         upcoming = _upcoming_appointments(qs.filter(is_cancelled=False), today)
 
+        kb = main_reply_keyboard(user.role)
         if not upcoming:
             role_hint = {
                 'doctor': 'Send /today or /tomorrow for the patient list.',
                 'admin': 'Send /today or /tomorrow for the clinic list.',
             }.get(user.role, '')
-            send_message(chat_id, f'You have no upcoming appointments on your schedule.{(" " + role_hint) if role_hint else ""}')
+            send_markdown(chat_id, f'📅 You have no upcoming appointments on your schedule.{(" " + role_hint) if role_hint else ""}', kb)
             return {'ok': True, 'action': 'empty_appointments'}
 
         recent = upcoming[:6]
         if user.role == 'doctor':
-            lines = ["📅 Your upcoming appointments:"]
+            lines = ["📅 *Your upcoming appointments:*"]
             for a in recent:
                 lines.append(
-                    f"• {date(a.year, a.month, a.day).strftime('%a, %b %d')} "
-                    f"{a.hour:02d}:{a.minute:02d} — {_format_patient_line(a)}"
+                    f"▸ *{date(a.year, a.month, a.day).strftime('%a, %b %d')}* "
+                    f"`{a.hour:02d}:{a.minute:02d}` — {_format_patient_line(a)}"
                 )
             more = len(upcoming) - len(recent)
             if more > 0:
                 lines.append(f"\n…and {more} more.")
         elif is_admin:
-            lines = ["📅 Clinic-wide upcoming appointments:"]
+            lines = ["📅 *Clinic-wide upcoming appointments:*"]
             for a in recent:
                 lines.append(
-                    f"• {date(a.year, a.month, a.day).strftime('%a, %b %d')} "
-                    f"{a.hour:02d}:{a.minute:02d} — Dr. {a.doctor.name}: {_format_patient_line(a)}"
+                    f"▸ *{date(a.year, a.month, a.day).strftime('%a, %b %d')}* "
+                    f"`{a.hour:02d}:{a.minute:02d}` — Dr. {a.doctor.name}: {_format_patient_line(a)}"
                 )
         else:
-            lines = ["📅 Your upcoming appointments:"] + [_format_appointment(a) for a in recent]
-        send_message(chat_id, "\n".join(lines))
+            lines = ["📅 *Your upcoming appointments:*"] + [_format_appointment(a) for a in recent]
+        send_markdown(chat_id, "\n".join(lines), kb)
         return {'ok': True, 'action': 'appointments_sent'}
 
     # Unknown/unsupported command
-    user = _linked_user(chat_id)
+    kb = main_reply_keyboard(user.role) if user else None
     if user and user.role == 'doctor':
-        send_message(chat_id, f'Unknown command: {cmd}. Send /help to see your commands, or /today for today\u2019s patient list.')
+        send_markdown(chat_id, f'Unknown command: `{cmd}`. Send /help to see your commands, or /today for today\u2019s patient list.', kb)
     elif user:
-        send_message(chat_id, f'Unknown command: {cmd}. Send /help to see your commands, or /medications for today\u2019s medicines.')
+        send_markdown(chat_id, f'Unknown command: `{cmd}`. Send /help to see your commands, or /medications for today\u2019s medicines.', kb)
     else:
-        send_message(chat_id, f'Unknown command: {cmd}. Use the Connect link on the ClinicOS website to link your account, then /help.')
+        send_markdown(chat_id, f'Unknown command: `{cmd}`. Use the Connect link on the ClinicOS website to link your account, then /help.')
     return {'ok': True, 'action': 'unknown'}
 
 
