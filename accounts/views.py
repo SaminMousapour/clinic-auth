@@ -538,6 +538,55 @@ def appointment_book(request):
         selected_month = 1
         selected_year += 1
 
+    # Availability: check each doctor's off days for the selected day
+    availability_info = {}
+    if selected_day is not None:
+        for d in doctors:
+            try:
+                check_date = dt_date(selected_year, selected_month, selected_day)
+                has_off_day = DoctorOffDay.objects.filter(doctor=d, date=check_date).exists()
+                # Also check if doctor has any bookings on that day
+                bookings = Appointment.objects.filter(
+                    doctor=d,
+                    day=selected_day,
+                    month=selected_month,
+                    year=selected_year,
+                    is_cancelled=False
+                )
+                is_full = bookings.count() >= 8  # assuming max 8 appointments per day
+                availability_info[d.id] = {
+                    'has_off_day': has_off_day,
+                    'booked_hours': [a.hour for a in bookings],
+                    'is_full': is_full,
+                }
+            except ValueError:
+                availability_info[d.id] = {
+                    'has_off_day': False,
+                    'booked_hours': [],
+                    'is_full': False,
+                }
+
+    now = timezone.now()
+    selected_day = None
+    selected_month = now.month
+    selected_year = now.year
+
+    doctor_id = request.GET.get('doctor_id')
+    day = request.GET.get('day')
+    month = request.GET.get('month')
+    year = request.GET.get('year')
+
+    if month and year:
+        selected_month = int(month)
+        selected_year = int(year)
+
+    if selected_month < 1:
+        selected_month = 12
+        selected_year -= 1
+    elif selected_month > 12:
+        selected_month = 1
+        selected_year += 1
+
     if day:
         selected_day = int(day)
 
@@ -553,6 +602,13 @@ def appointment_book(request):
                 is_cancelled=False
             )
             booked_hours = [a.hour for a in booked_appointments]
+
+            # Check if doctor has off day on this date
+            from datetime import date as dt_date
+            check_date = dt_date(selected_year, selected_month, selected_day)
+            is_off_day = DoctorOffDay.objects.filter(doctor=selected_doctor, date=check_date).exists()
+    else:
+        is_off_day = False
 
     import calendar as cal
     cal_obj = cal.Calendar(firstweekday=5)
@@ -658,6 +714,7 @@ def appointment_book(request):
         'patient_insurances': patient_insurances,
         'specialties': specialties,
         'specialty_filter': specialty_filter,
+        'availability_info': availability_info,
     })
 
 
