@@ -100,7 +100,8 @@
             {% if d == 0 %}
             <div class="cal-day empty"></div>
             {% else %}
-            <div class="cal-day {% if d|divisibleby:1 %}available{% else %}unavailable{% endif %}">
+            <div class="cal-day{% if d|divisibleby:1 %} available{% else %} unavailable{% endif %}}"
+onclick="pickDay({{ d }})">
                 {{ d }}
             </div>
             {% endif %}
