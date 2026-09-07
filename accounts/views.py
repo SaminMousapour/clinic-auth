@@ -1442,6 +1442,34 @@ def doctor_patient_visit(request, appointment_id):
 
 
 @login_required
+def doctor_patient_history(request, patient_id):
+    if not hasattr(request.user, 'doctor_profile'):
+        messages.error(request, 'Access denied.')
+        return redirect('home')
+
+    doctor = request.user.doctor_profile
+    patient = get_object_or_404(Patient, id=patient_id)
+
+    all_visits = PatientVisit.objects.filter(patient=patient, is_completed=True).select_related('doctor', 'doctor__user').order_by('-visited_at')
+    all_prescriptions = Prescription.objects.filter(visit__patient=patient).select_related('visit', 'visit__doctor', 'visit__doctor__user').order_by('-created_at')
+    all_records = MedicalRecord.objects.filter(visit__patient=patient).select_related('visit', 'visit__doctor', 'visit__doctor__user').order_by('-uploaded_at')
+    patient_records = PatientRecord.objects.filter(patient=patient).order_by('-created_at')
+    medications = Medication.objects.filter(patient=patient)
+    health_readings = HealthReading.objects.filter(patient=patient).order_by('-created_at')
+
+    return render(request, 'appointments/doctor_patient_history.html', {
+        'doctor': doctor,
+        'patient': patient,
+        'all_visits': all_visits,
+        'all_prescriptions': all_prescriptions,
+        'all_records': all_records,
+        'patient_records': patient_records,
+        'medications': medications,
+        'health_readings': health_readings,
+    })
+
+
+@login_required
 def patient_records(request):
     if request.user.role != 'patient':
         return redirect('home')

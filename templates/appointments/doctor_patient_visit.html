@@ -45,6 +45,10 @@
                     </div>
                 </div>
             </div>
+            <a href="{% url 'doctor_patient_history' patient.id %}" class="btn btn-sm btn-primary" style="margin-left:auto;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;"><path d="M12 5v14M5 12h14M12 5l7 7-7 7"/></svg>
+                Full History
+            </a>
             {% if visit.is_completed %}
             <span class="visit-completed-badge">Completed</span>
             <form method="post" class="visit-header-complete-form" style="display:inline;">

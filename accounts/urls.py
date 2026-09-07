@@ -21,6 +21,7 @@ urlpatterns = [
     path('doctor/appointments/toggle-off-day/', views.doctor_toggle_off_day, name='doctor_toggle_off_day'),
     path('doctor/insurance-settings/', views.doctor_insurance_settings, name='doctor_insurance_settings'),
     path('doctor/visit/<int:appointment_id>/', views.doctor_patient_visit, name='doctor_patient_visit'),
+    path('doctor/patient/<int:patient_id>/history/', views.doctor_patient_history, name='doctor_patient_history'),
 
     # Admin URLs
     path('admin-panel/', views.admin_panel, name='admin_panel'),
