@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+{% load schedule_extras %}
+
+{% block title %}My Weekly Schedule{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <nav class="dash-nav">
+        <div class="dash-nav-inner">
+            <a href="/" class="nav-logo">
+                <svg width="32" height="32" viewBox="0 0 100 100">
+                    <rect x="10" y="10" width="80" height="80" rx="15" fill="#1e3a8a" opacity="0.15"/>
+                    <rect x="42" y="20" width="16" height="50" rx="3" fill="#1e3a8a"/>
+                    <rect x="25" y="42" width="50" height="16" rx="3" fill="#1e3a8a"/>
+                </svg>
+                <span>ClinicOS</span>
+            </a>
+            <div class="dash-nav-right">
+                <a href="{% url 'patient_dashboard' %}" class="btn btn-sm btn-ghost">Dashboard</a>
+                <a href="{% url 'patient_appointments' %}" class="btn btn-sm btn-primary" style="margin-left:8px;">Appointments</a>
+                <span class="dash-user">{{ patient.full_name }}</span>
+                <a href="{% url 'logout' %}" class="btn btn-sm btn-ghost">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="dash-main">
+        {% if messages %}
+        <div class="messages" style="max-width:1200px; margin:16px auto 0;">
+            {% for message in messages %}
+            <div class="alert {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="schedule-header">
+            <h1>📅 My Weekly Schedule Board</h1>
+            <p class="schedule-subtitle">Plan your week, avoid conflicts, never miss a thing!</p>
+        </div>
+
+        <!-- Add Schedule Item Modal -->
+        <div id="scheduleModal" class="modal" hidden>
+            <div class="modal-backdrop" onclick="closeModal()"></div>
+            <div class="modal-content schedule-modal">
+                <div class="modal-header">
+                    <h2 id="modalTitle">Add Schedule Item</h2>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <form method="post" id="scheduleForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add">
+                    <input type="hidden" name="item_id" id="editItemId">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="title">Title *</label>
+                            <input type="text" id="title" name="title" required placeholder="e.g., Yoga Class, Dr. Smith Cardiology">
+                        </div>
+                        <div class="form-group">
+                            <label for="category">Category</label>
+                            <select id="category" name="category">
+                                {% for value, label in category_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="day_of_week">Day *</label>
+                            <select id="day_of_week" name="day_of_week" required>
+                                <option value="">Select day</option>
+                                <option value="monday">📅 Monday</option>
+                                <option value="tuesday">📅 Tuesday</option>
+                                <option value="wednesday">📅 Wednesday</option>
+                                <option value="thursday">📅 Thursday</option>
+                                <option value="friday">📅 Friday</option>
+                                <option value="saturday">📅 Saturday</option>
+                                <option value="sunday">📅 Sunday</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="color">Color</label>
+                            <input type="color" id="color" name="color" value="#3b82f6">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="start_time">Start Time *</label>
+                            <input type="time" id="start_time" name="start_time" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="end_time">End Time *</label>
+                            <input type="time" id="end_time" name="end_time" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" name="location" placeholder="e.g., Yoga Studio, Dr. Smith Cardiology, Online">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Notes</label>
+                        <textarea id="description" name="description" rows="3" placeholder="Any details..."></textarea>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Add to Schedule</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Weekly Schedule Board -->
+        <div class="schedule-board">
+            {% for day in days_order %}
+            <div class="schedule-day">
+                <div class="schedule-day-header">
+                    <span class="day-name">{{ day|capfirst }}</span>
+                    <span class="day-count">{{ schedule_by_day|get_item:day|length }} item{{ schedule_by_day|get_item:day|length|pluralize }}</span>
+                </div>
+                <div class="schedule-day-body" data-day="{{ day }}">
+                    {% for item in schedule_by_day|get_item:day %}
+                    <div class="schedule-item" style="border-left-color: {{ item.color }};" data-id="{{ item.id }}">
+                        <div class="item-time">{{ item.start_time|time:"H:i" }} - {{ item.end_time|time:"H:i" }}</div>
+                        <div class="item-content">
+                            <div class="item-title-row">
+                                <span class="item-category">{{ item.get_category_display }}</span>
+                                <span class="item-title">{{ item.title }}</span>
+                            </div>
+                            {% if item.location %}
+                            <div class="item-location">📍 {{ item.location }}</div>
+                            {% endif %}
+                            {% if item.description %}
+                            <div class="item-description">{{ item.description|truncatewords:15 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="item-actions">
+                            <button class="item-btn edit-btn" onclick="editItem({{ item.id }}, '{{ item.title|escapejs }}', '{{ item.description|escapejs }}', '{{ item.category }}', '{{ item.day_of_week }}', '{{ item.start_time|time:"H:i" }}', '{{ item.end_time|time:"H:i" }}', '{{ item.location|escapejs }}', '{{ item.color }}')" title="Edit">✏️</button>
+                            <form method="post" style="display:inline;" onsubmit="return confirm('Deactivate this item?')">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle">
+                                <input type="hidden" name="item_id" value="{{ item.id }}">
+                                <button type="submit" class="item-btn toggle-btn" title="{{ item.is_active|yesno:'Deactivate,Activate' }}">{{ item.is_active|yesno:'⏸️,▶️' }}</button>
+                            </form>
+                            <form method="post" style="display:inline;" onsubmit="return confirm('Delete this item permanently?')">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="item_id" value="{{ item.id }}">
+                                <button type="submit" class="item-btn delete-btn" title="Delete">🗑️</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="schedule-empty">
+                        <span class="empty-icon">🌙</span>
+                        <p>Free day! <br><small>Click + to add plans</small></p>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="add-item-btn" onclick="openModal('{{ day }}')">+ Add</button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Legend -->
+        <div class="schedule-legend">
+            <h3>📋 Category Legend</h3>
+            <div class="legend-items">
+                {% for value, label in category_choices %}
+                <span class="legend-item" style="--cat-color: {{ value|get_category_color }}">{{ label }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+</div>
+
+<style>
+/* Schedule Board Styles */
+.schedule-header { text-align:center; padding:20px 0 10px; }
+.schedule-header h1 { font-size:1.8rem; margin-bottom:4px; background:linear-gradient(135deg,#1e3a8a,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.schedule-subtitle { color:#6b7280; font-size:1rem; }
+
+.schedule-board { display:grid; grid-template-columns:repeat(7,1fr); gap:12px; max-width:1400px; margin:0 auto; padding:0 16px 30px; }
+@media (max-width:1200px) { .schedule-board { grid-template-columns:repeat(4,1fr); } }
+@media (max-width:800px) { .schedule-board { grid-template-columns:repeat(2,1fr); } }
+@media (max-width:500px) { .schedule-board { grid-template-columns:1fr; } }
+
+.schedule-day { background:#fff; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.06); border:1px solid #eef2f7; overflow:hidden; transition:transform .2s, box-shadow .2s; }
+.schedule-day:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(0,0,0,0.1); }
+.schedule-day-header { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%); border-bottom:1px solid #eef2f7; }
+.day-name { font-weight:700; font-size:1.05rem; color:#1e293b; }
+.day-count { font-size:.75rem; color:#64748b; background:#e2e8f0; padding:2px 8px; border-radius:12px; }
+
+.schedule-day-body { min-height:120px; max-height:400px; overflow-y:auto; padding:8px; }
+.schedule-day-body::-webkit-scrollbar { width:6px; }
+.schedule-day-body::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+
+.schedule-item { display:flex; gap:10px; padding:10px 12px; background:#fafafa; border-radius:10px; margin-bottom:8px; border-left:4px solid; transition:all .2s; position:relative; animation:slideIn .3s ease; }
+@keyframes slideIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+.schedule-item:hover { background:#f8fafc; transform:translateX(2px); }
+.item-time { font-size:.7rem; font-weight:700; color:#64748b; white-space:nowrap; min-width:90px; text-align:right; padding-top:2px; }
+.item-content { flex:1; min-width:0; }
+.item-title-row { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.item-category { font-size:.65rem; padding:2px 6px; border-radius:4px; background:#eef2ff; color:#3730a3; font-weight:600; white-space:nowrap; }
+.item-title { font-weight:600; color:#1e293b; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.item-location { font-size:.7rem; color:#64748b; margin-top:2px; }
+.item-description { font-size:.7rem; color:#94a3b8; margin-top:4px; line-height:1.3; }
+.item-actions { display:flex; gap:4px; opacity:0; transition:opacity .2s; flex-shrink:0; }
+.schedule-item:hover .item-actions { opacity:1; }
+.item-btn { width:28px; height:28px; border:none; background:#f1f5f9; border-radius:6px; cursor:pointer; font-size:.85rem; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.item-btn:hover { background:#e2e8f0; transform:scale(1.1); }
+.edit-btn:hover { background:#dbeafe; }
+.toggle-btn:hover { background:#fef3c7; }
+.delete-btn:hover { background:#fee2e2; }
+
+.schedule-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100px; color:#cbd5e1; text-align:center; }
+.empty-icon { font-size:2rem; margin-bottom:8px; }
+.schedule-empty p { font-size:.8rem; margin:0; line-height:1.4; }
+
+.add-item-btn { width:100%; padding:10px; margin:8px 0 0; border:none; background:linear-gradient(135deg,#3b82f6,#8b5cf6); color:#fff; border-radius:10px; font-weight:600; cursor:pointer; transition:all .2s; font-size:.9rem; }
+.add-item-btn:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(59,130,246,0.4); }
+
+/* Modal */
+.modal { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; }
+.modal[hidden] { display:none; }
+.modal-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); }
+.modal-content { background:#fff; border-radius:16px; padding:24px; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.2); animation:modalIn .25s ease; position:relative; }
+@keyframes modalIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:scale(1); } }
+.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.modal-header h2 { margin:0; font-size:1.25rem; color:#1e293b; }
+.modal-close { width:32px; height:32px; border:none; background:#f1f5f9; border-radius:8px; font-size:1.5rem; cursor:pointer; color:#64748b; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.modal-close:hover { background:#e2e8f0; color:#1e293b; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; margin-bottom:6px; font-weight:500; color:#374151; font-size:.9rem; }
+.form-group input, .form-group select, .form-group textarea { width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:.9rem; transition:border .15s, box-shadow .15s; box-sizing:border-box; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.15); }
+.form-group input[type="color"] { height:44px; padding:4px; cursor:pointer; }
+.modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:8px; }
+
+/* Legend */
+.schedule-legend { max-width:1400px; margin:0 auto 30px; padding:0 16px; }
+.schedule-legend h3 { font-size:1rem; color:#374151; margin-bottom:12px; }
+.legend-items { display:flex; flex-wrap:wrap; gap:8px; }
+.legend-item { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:20px; font-size:.8rem; color:#475569; }
+.legend-item::before { content:''; width:10px; height:10px; border-radius:50%; background:var(--cat-color); }
+
+/* Conflict Warning in Appointment Booking */
+.conflict-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); border:1px solid #fcd34d; border-radius:12px; padding:16px; margin:16px 0; display:flex; align-items:flex-start; gap:12px; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100% { box-shadow:0 0 0 0 rgba(251,191,36,0.4); } 50% { box-shadow:0 0 0 8px rgba(251,191,36,0); } }
+.conflict-icon { font-size:1.5rem; flex-shrink:0; margin-top:2px; }
+.conflict-content h4 { margin:0 0 8px; color:#92400e; font-size:1rem; }
+.conflict-content p { margin:4px 0; color:#78350f; font-size:.9rem; }
+.conflict-list { margin:8px 0 0; padding-left:20px; color:#78350f; font-size:.85rem; }
+.conflict-list li { margin:4px 0; }
+.conflict-actions { display:flex; gap:8px; margin-top:12px; }
+</style>
+
+<script>
+// Modal functions
+function openModal(day, itemData = null) {
+    const modal = document.getElementById('scheduleModal');
+    const form = document.getElementById('scheduleForm');
+    const title = document.getElementById('modalTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    const itemIdInput = document.getElementById('editItemId');
+    
+    form.reset();
+    itemIdInput.value = '';
+    document.getElementById('day_of_week').value = day;
+    title.textContent = 'Add Schedule Item';
+    submitBtn.textContent = 'Add to Schedule';
+    
+    if (itemData) {
+        title.textContent = 'Edit Schedule Item';
+        submitBtn.textContent = 'Save Changes';
+        itemIdInput.value = itemData.id;
+        document.getElementById('title').value = itemData.title;
+        document.getElementById('description').value = itemData.description;
+        document.getElementById('category').value = itemData.category;
+        document.getElementById('start_time').value = itemData.start_time;
+        document.getElementById('end_time').value = itemData.end_time;
+        document.getElementById('location').value = itemData.location;
+        document.getElementById('color').value = itemData.color;
+    }
+    
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('title').focus(), 100);
+}
+
+function closeModal() {
+    const modal = document.getElementById('scheduleModal');
+    modal.hidden = true;
+    document.body.style.overflow = '';
+}
+
+function editItem(id, title, description, category, day, startTime, endTime, location, color) {
+    openModal(day, { id, title, description, category, day_of_week: day, start_time: startTime, end_time: endTime, location, color });
+}
+
+// Close modal on Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+});
+
+// Auto-set end time to 1 hour after start
+document.getElementById('start_time').addEventListener('change', function() {
+    const endInput = document.getElementById('end_time');
+    if (!endInput.value && this.value) {
+        const [h, m] = this.value.split(':').map(Number);
+        const endH = (h + 1) % 24;
+        endInput.value = String(endH).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+    }
+});
+
+// Smooth scroll to today
+document.addEventListener('DOMContentLoaded', () => {
+    const today = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'][new Date().getDay()];
+    const todayCol = document.querySelector(`.schedule-day-body[data-day="${today}"]`);
+    if (todayCol) {
+        todayCol.parentElement.style.outline = '2px solid #3b82f6';
+        todayCol.parentElement.style.outlineOffset = '-2px';
+    }
+});
+</script>
+{% endblock %}

@@ -97,6 +97,7 @@ def patient_dashboard(request):
         'reminders': reminders,
         'reminder_count': len(reminders),
         'reminders_json': json.dumps([{'type': r['type'], 'message': r['message']} for r in reminders]),
+        'schedule_items': PatientSchedule.objects.filter(patient=patient, is_active=True),
     })
 
 
@@ -657,6 +658,40 @@ def appointment_book(request):
             except ValueError:
                 pass
 
+    # Check for schedule conflicts with patient's weekly schedule
+    schedule_conflicts = []
+    if selected_doctor and selected_day is not None and hasattr(patient, 'schedule_items'):
+        try:
+            check_date = date(selected_year, selected_month, selected_day)
+            # Python weekday: 0=Monday, 6=Sunday
+            weekday_map = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday', 4: 'friday', 5: 'saturday', 6: 'sunday'}
+            day_name = weekday_map[check_date.weekday()]
+            
+            # Get active schedule items for this day
+            day_items = PatientSchedule.objects.filter(patient=patient, is_active=True, day_of_week=day_name)
+            
+            # If hour is selected (from GET or POST), check specific time conflicts
+            selected_hour = request.GET.get('hour')
+            if selected_hour:
+                selected_hour = int(selected_hour)
+            elif request.method == 'POST':
+                selected_hour = int(request.POST.get('hour', 0))
+            else:
+                selected_hour = None
+            
+            if selected_hour is not None:
+                for item in day_items:
+                    item_start = item.start_time.hour + item.start_time.minute / 60
+                    item_end = item.end_time.hour + item.end_time.minute / 60
+                    appt_start = selected_hour
+                    appt_end = selected_hour + 1  # assume 1 hour appointment
+                    if not (appt_end <= item_start or appt_start >= item_end):
+                        schedule_conflicts.append(item)
+            else:
+                schedule_conflicts = list(day_items)
+        except (ValueError, TypeError):
+            pass
+
     if request.method == 'POST':
         doctor_id = request.POST.get('doctor_id')
         day = int(request.POST.get('day'))
@@ -691,6 +726,19 @@ def appointment_book(request):
         ).exists():
             messages.error(request, 'The selected time is already booked.')
         else:
+            # Check for patient schedule conflicts
+            schedule_conflicts = []
+            schedule_items = PatientSchedule.objects.filter(patient=patient, is_active=True)
+            for item in schedule_items:
+                if item.conflicts_with(day, month, year, hour, 0):  # assuming 30-min appointment
+                    schedule_conflicts.append(item)
+            
+            if schedule_conflicts:
+                conflict_msgs = []
+                for c in schedule_conflicts:
+                    conflict_msgs.append(f"{c.get_day_of_week_display()} {c.start_time.strftime('%H:%M')}-{c.end_time.strftime('%H:%M')}: {c.title} ({c.get_category_display()})")
+                messages.warning(request, '⚠️ Schedule Conflict! You have: ' + '; '.join(conflict_msgs) + ' at this time. You can still book, but consider rescheduling.')
+            
             appointment = Appointment(
                 doctor=doctor,
                 patient=patient,
@@ -731,6 +779,7 @@ def appointment_book(request):
         'availability_info': availability_info,
         'is_off_day': is_off_day,
         'off_day_days': off_day_days,
+        'schedule_conflicts': schedule_conflicts,
     })
 
 
@@ -2075,6 +2124,96 @@ def test_seed_data(request):
         'max_today_appointment': str(max_today_appt) if max_today_appt else None,
         'seed_appointment': str(seed_appt) if seed_appt else None,
         'seed_today_appointment': str(seed_today_appt) if seed_today_appt else None,
+    })
+
+
+# ==================== Patient Schedule Views ====================
+
+@login_required
+def patient_schedule(request):
+    """Display and manage weekly schedule board"""
+    if request.user.role != 'patient':
+        return redirect('home')
+    try:
+        patient = request.user.patient_profile
+    except Patient.DoesNotExist:
+        return redirect('home')
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+        
+        if action == 'add':
+            title = request.POST.get('title', '').strip()
+            description = request.POST.get('description', '').strip()
+            category = request.POST.get('category', 'other')
+            day_of_week = request.POST.get('day_of_week', '')
+            start_time = request.POST.get('start_time', '')
+            end_time = request.POST.get('end_time', '')
+            location = request.POST.get('location', '').strip()
+            color = request.POST.get('color', '#3b82f6')
+
+            errors = []
+            if not title:
+                errors.append('Title is required.')
+            if not day_of_week:
+                errors.append('Day of week is required.')
+            if not start_time or not end_time:
+                errors.append('Start and end time are required.')
+            try:
+                from datetime import time
+                st = time.fromisoformat(start_time)
+                et = time.fromisoformat(end_time)
+                if st >= et:
+                    errors.append('End time must be after start time.')
+            except Exception:
+                errors.append('Invalid time format.')
+
+            if not errors:
+                PatientSchedule.objects.create(
+                    patient=patient,
+                    title=title,
+                    description=description,
+                    category=category,
+                    day_of_week=day_of_week,
+                    start_time=st,
+                    end_time=et,
+                    location=location,
+                    color=color,
+                )
+                messages.success(request, 'Schedule item added!')
+                return redirect('patient_schedule')
+            else:
+                for e in errors:
+                    messages.error(request, e)
+
+        elif action == 'delete':
+            item_id = request.POST.get('item_id')
+            if item_id:
+                PatientSchedule.objects.filter(patient=patient, id=item_id).delete()
+                messages.success(request, 'Schedule item deleted.')
+                return redirect('patient_schedule')
+
+        elif action == 'toggle':
+            item_id = request.POST.get('item_id')
+            if item_id:
+                item = PatientSchedule.objects.filter(patient=patient, id=item_id).first()
+                if item:
+                    item.is_active = not item.is_active
+                    item.save()
+                    messages.success(request, f'Schedule item {"activated" if item.is_active else "deactivated"}.')
+                    return redirect('patient_schedule')
+
+    schedule_items = PatientSchedule.objects.filter(patient=patient).order_by('day_of_week', 'start_time')
+    days_order = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    schedule_by_day = {day: [] for day in days_order}
+    for item in schedule_items:
+        schedule_by_day[item.day_of_week].append(item)
+
+    return render(request, 'patient_schedule.html', {
+        'patient': patient,
+        'schedule_by_day': schedule_by_day,
+        'days_order': days_order,
+        'category_choices': PatientSchedule.CATEGORY_CHOICES,
     })
 
 

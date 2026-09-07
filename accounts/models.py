@@ -234,6 +234,70 @@ class Medication(models.Model):
         return f"{self.name} - {self.patient.full_name}"
 
 
+class PatientSchedule(models.Model):
+    """Weekly recurring schedule items for patients (classes, other appointments, etc.)"""
+    DAYS_OF_WEEK = [
+        ('saturday', 'Saturday'),
+        ('sunday', 'Sunday'),
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+    ]
+
+    CATEGORY_CHOICES = [
+        ('class', '📚 Class / Course'),
+        ('work', '💼 Work'),
+        ('appointment', '🏥 Other Clinic Appointment'),
+        ('personal', '🏠 Personal / Family'),
+        ('exercise', '🏃 Exercise / Sport'),
+        ('other', '📌 Other'),
+    ]
+
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='schedule_items')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, default='')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other')
+    day_of_week = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    location = models.CharField(max_length=200, blank=True, default='', help_text='e.g., "Yoga Studio", "Dr. Smith Cardiology"')
+    color = models.CharField(max_length=7, default='#3b82f6', help_text='Hex color for calendar display')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['day_of_week', 'start_time']
+        verbose_name = 'Schedule Item'
+        verbose_name_plural = 'Schedule Items'
+
+    def __str__(self):
+        return f"{self.patient.full_name} - {self.get_day_of_week_display()} {self.start_time}-{self.end_time}: {self.title}"
+
+    def get_day_index(self):
+        """Return 0-6 for Monday-Sunday (Python weekday)"""
+        day_map = {'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3, 'friday': 4, 'saturday': 5, 'sunday': 6}
+        return day_map.get(self.day_of_week, 0)
+
+    def conflicts_with(self, appointment_day, appointment_month, appointment_year, appointment_hour, appointment_minute):
+        """Check if this schedule item conflicts with a specific appointment datetime"""
+        import datetime
+        try:
+            appt_date = datetime.date(appointment_year, appointment_month, appointment_day)
+            appt_weekday = appt_date.weekday()  # 0=Monday
+            if appt_weekday != self.get_day_index():
+                return False
+            appt_start = datetime.time(appointment_hour, appointment_minute)
+            # Assume 30 min appointment if not specified
+            appt_end = (datetime.datetime.combine(datetime.date.today(), appt_start) + datetime.timedelta(minutes=30)).time()
+            # Check overlap
+            return not (appt_end <= self.start_time or appt_start >= self.end_time)
+        except Exception:
+            return False
+
+
 class HealthReading(models.Model):
     READING_TYPES = [
         ('blood_pressure', 'Blood Pressure'),

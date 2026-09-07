@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load schedule_extras %}
 
 {% block title %}Dashboard{% endblock %}
 
@@ -94,6 +95,31 @@
         </div>
         {% endif %}
 
+        {% if schedule_items %}
+        <div class="schedule-preview">
+            <div class="schedule-preview-header">
+                <h3>📅 Today's Schedule</h3>
+                <a href="{% url 'patient_schedule' %}" class="schedule-preview-link">View Full Board →</a>
+            </div>
+            <div class="schedule-preview-items">
+                {% for item in schedule_items|get_today_items %}
+                <div class="schedule-preview-item" style="border-left-color: {{ item.color }};">
+                    <div class="sp-time">{{ item.start_time|time:"H:i" }} - {{ item.end_time|time:"H:i" }}</div>
+                    <div class="sp-info">
+                        <span class="sp-category">{{ item.get_category_display }}</span>
+                        <span class="sp-title">{{ item.title }}</span>
+                        {% if item.location %}
+                        <span class="sp-location">📍 {{ item.location }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="schedule-preview-empty">Free day! 🎉 <a href="{% url 'patient_schedule' %}">Add plans</a></div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="module-grid">
             <a href="{% url 'appointment_book' %}" class="module-card module-appointments">
                 <div class="module-card-top">
@@ -174,6 +200,22 @@
                 <p>Add symptoms & notes for your doctor</p>
                 <div class="module-tag">Share with Doctor</div>
             </a>
+
+            <a href="{% url 'patient_schedule' %}" class="module-card module-schedule">
+                <div class="module-card-top">
+                    <div class="module-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/>
+                            <path d="M16 2v4M8 2v4M3 10h18"/>
+                            <path d="M9 16h6M9 20h6"/>
+                        </svg>
+                    </div>
+                    <svg class="module-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+                <h3>Weekly Schedule</h3>
+                <p>Plan your week, avoid conflicts</p>
+                <div class="module-tag">Stay Organized</div>
+            </a>
         </div>
 
         <div class="dash-footer">
@@ -181,6 +223,46 @@
         </div>
     </main>
 </div>
+
+<style>
+/* Schedule Preview */
+.schedule-preview {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    border: 1px solid #eef2f7;
+    padding: 20px;
+    margin-bottom: 24px;
+    animation: fadeInUp 0.4s ease;
+}
+@keyframes fadeInUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.schedule-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.schedule-preview-header h3 { margin: 0; font-size: 1.1rem; color: #1e293b; }
+.schedule-preview-link { font-size: .85rem; color: #3b82f6; text-decoration: none; font-weight: 600; }
+.schedule-preview-link:hover { text-decoration: underline; }
+.schedule-preview-items { display: flex; flex-direction: column; gap: 8px; }
+.schedule-preview-item { display: flex; gap: 12px; padding: 10px 12px; background: #fafafa; border-radius: 10px; border-left: 4px solid; transition: all .2s; }
+.schedule-preview-item:hover { background: #f8fafc; transform: translateX(2px); }
+.sp-time { font-size: .75rem; font-weight: 700; color: #64748b; white-space: nowrap; min-width: 100px; text-align: right; }
+.sp-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sp-category { font-size: .65rem; padding: 2px 6px; border-radius: 4px; background: #eef2ff; color: #3730a3; font-weight: 600; width: fit-content; }
+.sp-title { font-weight: 600; color: #1e293b; font-size: .9rem; }
+.sp-location { font-size: .7rem; color: #64748b; }
+.schedule-preview-empty { text-align: center; color: #94a3b8; padding: 20px; }
+.schedule-preview-empty a { color: #3b82f6; font-weight: 600; text-decoration: none; }
+.schedule-preview-empty a:hover { text-decoration: underline; }
+
+/* Module Schedule Card */
+.module-schedule .module-icon { background: linear-gradient(135deg, #8b5cf6, #3b82f6); }
+.module-schedule .module-icon svg { stroke: white; }
+</style>
 
 <div class="notif-toast" id="notifToast">
     <div class="notif-toast-content">
