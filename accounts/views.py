@@ -2076,3 +2076,116 @@ def test_seed_data(request):
         'seed_appointment': str(seed_appt) if seed_appt else None,
         'seed_today_appointment': str(seed_today_appt) if seed_today_appt else None,
     })
+
+
+def password_reset_request(request):
+    """Step 1: Ask for identifying info (phone or email) to verify identity."""
+    if request.method == 'POST':
+        identifier = request.POST.get('identifier', '').strip()  # phone or email
+        if not identifier:
+            messages.error(request, 'Please enter your phone number or email.')
+            return render(request, 'password_reset_request.html')
+
+        # Find patient by phone or email
+        patients = Patient.objects.all()
+        matched_patient = None
+        for p in patients:
+            if p.phone == identifier or p.email == identifier:
+                matched_patient = p
+                break
+
+        if not matched_patient:
+            # Don't reveal whether the identifier exists
+            messages.success(request, 'If the information matches our records, you will be able to reset your password.')
+            return redirect('login')
+
+        # Store patient_id in session for next step
+        request.session['reset_patient_id'] = matched_patient.id
+        return redirect('password_reset_verify')
+
+    return render(request, 'password_reset_request.html')
+
+
+def password_reset_verify(request):
+    """Step 2: Verify additional security info (username + date of birth/age)."""
+    patient_id = request.session.get('reset_patient_id')
+    if not patient_id:
+        return redirect('password_reset_request')
+
+    patient = get_object_or_404(Patient, id=patient_id)
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        age = request.POST.get('age', '').strip()
+
+        if not username or not age:
+            messages.error(request, 'Please enter both username and age.')
+            return render(request, 'password_reset_verify.html', {'patient': patient})
+
+        # Verify username matches
+        if patient.user.username.lower() != username.lower():
+            messages.error(request, 'Username does not match our records.')
+            return render(request, 'password_reset_verify.html', {'patient': patient})
+
+        # Verify age matches
+        try:
+            if int(age) != patient.age:
+                messages.error(request, 'Age does not match our records.')
+                return render(request, 'password_reset_verify.html', {'patient': patient})
+        except ValueError:
+            messages.error(request, 'Invalid age.')
+            return render(request, 'password_reset_verify.html', {'patient': patient})
+
+        # All verified - proceed to reset
+        request.session['reset_verified'] = True
+        return redirect('password_reset_confirm')
+
+    return render(request, 'password_reset_verify.html', {'patient': patient})
+
+
+def password_reset_confirm(request):
+    """Step 3: Set new password."""
+    if not request.session.get('reset_verified'):
+        return redirect('password_reset_request')
+
+    patient_id = request.session.get('reset_patient_id')
+    if not patient_id:
+        return redirect('password_reset_request')
+
+    patient = get_object_or_404(Patient, id=patient_id)
+
+    if request.method == 'POST':
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+
+        errors = []
+        if len(password1) < 8:
+            errors.append('Password must be at least 8 characters long.')
+        if password1.isalpha():
+            errors.append('Password must contain at least one number.')
+        if password1.isdigit():
+            errors.append('Password must contain at least one letter.')
+        if password1 != password2:
+            errors.append('Passwords do not match.')
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+            return render(request, 'password_reset_confirm.html')
+
+        # Update both User and Patient password
+        user = patient.user
+        user.set_password(password1)
+        user.save()
+
+        patient.password_hash = make_password(password1)
+        patient.save()
+
+        # Clear session
+        request.session.pop('reset_patient_id', None)
+        request.session.pop('reset_verified', None)
+
+        messages.success(request, 'Password has been reset successfully. You can now login with your new password.')
+        return redirect('login')
+
+    return render(request, 'password_reset_confirm.html')

@@ -53,6 +53,9 @@ urlpatterns = [
     # Telegram bot
     path('telegram/connect/', views.telegram_connect, name='telegram_connect'),
     path('telegram/disconnect/', views.telegram_disconnect, name='telegram_disconnect'),
+    path('password/reset/', views.password_reset_request, name='password_reset_request'),
+    path('password/reset/verify/', views.password_reset_verify, name='password_reset_verify'),
+    path('password/reset/confirm/', views.password_reset_confirm, name='password_reset_confirm'),
     path('telegram/webhook/<str:secret>/', views.telegram_webhook, name='telegram_webhook'),
 
     # Test trigger (secret token)
