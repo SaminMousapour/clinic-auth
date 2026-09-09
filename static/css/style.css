@@ -4318,6 +4318,56 @@ body {
 }
 .cal-day.cal-today::after { background: #f59e0b; box-shadow: 0 0 0 2px white; }
 
+/* Off-day X mark - prominent visual indicator */
+.cal-day.cal-off,
+.cal-day.cal-both {
+    position: relative;
+}
+.cal-day.cal-off::before,
+.cal-day.cal-both::before {
+    content: "✕";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #ef4444;
+    text-shadow: 0 0 4px rgba(255,255,255,0.8), 0 0 8px rgba(239,68,68,0.5);
+    pointer-events: none;
+    z-index: 2;
+    line-height: 1;
+}
+.cal-day.cal-off::after,
+.cal-day.cal-both::after {
+    display: none; /* Hide the dot when X is shown */
+}
+.cal-day.cal-both::before {
+    color: #ef4444;
+    text-shadow: 0 0 4px rgba(255,255,255,0.8), 0 0 8px rgba(37,99,235,0.3);
+}
+
+/* Hover effect for off-day toggle */
+.cal-day.cal-off:hover::before,
+.cal-day.cal-both:hover::before {
+    transform: translate(-50%, -50%) scale(1.2);
+    color: #dc2626;
+    transition: all 0.15s ease;
+}
+
+/* Ensure the day number is still visible but subdued on off days */
+.cal-day.cal-off .cal-day-num,
+.cal-day.cal-both .cal-day-num {
+    color: #991b1b;
+    opacity: 0.7;
+}
+
+/* Legend update */
+.calendar-legend .cal-leg i.cal-dot-off {
+    background: #ef4444;
+    clip-path: polygon(20% 0%, 0% 20%, 30% 50%, 0% 80%, 20% 100%, 50% 70%, 80% 100%, 100% 80%, 70% 50%, 100% 20%, 50% 0%, 30% 30%);
+}
+
 .view-toggle {
     display: flex;
     gap: 8px;

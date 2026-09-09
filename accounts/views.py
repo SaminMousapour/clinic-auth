@@ -1419,6 +1419,43 @@ def doctor_patient_visit(request, appointment_id):
             else:
                 messages.error(request, 'Enter prescription text or upload a file.')
 
+        elif action == 'add_medication':
+            name = request.POST.get('med_name', '').strip()
+            dosage = request.POST.get('med_dosage', '').strip()
+            time_str = request.POST.get('med_time', '').strip()
+            days = request.POST.getlist('med_days')
+            times_of_day = request.POST.get('med_times_of_day', '').strip()
+            times_per_day = request.POST.get('med_times_per_day', '1')
+            if name and dosage and time_str:
+                try:
+                    from datetime import time
+                    med_time = time.fromisoformat(time_str)
+                    Medication.objects.create(
+                        patient=patient,
+                        name=name,
+                        dosage=dosage,
+                        time=med_time,
+                        times_of_day=times_of_day,
+                        times_per_day=int(times_per_day) if times_per_day.isdigit() else 1,
+                        days_of_week=','.join(days),
+                    )
+                    messages.success(request, f'Medication "{name}" added for patient.')
+                except Exception as e:
+                    messages.error(request, f'Error adding medication: {e}')
+            else:
+                messages.error(request, 'Name, dosage, and time are required.')
+
+        elif action == 'delete_medication':
+            med_id = request.POST.get('med_id')
+            if med_id:
+                med = Medication.objects.filter(patient=patient, id=med_id).first()
+                if med:
+                    med_name = med.name
+                    med.delete()
+                    messages.success(request, f'Medication "{med_name}" deleted for patient.')
+                else:
+                    messages.error(request, 'Medication not found.')
+
         elif action == 'mark_visited':
             blood = request.POST.get('blood_type', visit.blood_type).strip()
             allerg = request.POST.get('allergies', visit.allergies).strip()
@@ -1462,6 +1499,7 @@ def doctor_patient_visit(request, appointment_id):
         'records': records,
         'prescriptions': prescriptions,
         'patient_records': PatientRecord.objects.filter(patient=patient).order_by('-created_at'),
+        'day_choices': Medication.DAYS_OF_WEEK,
     })
 
 

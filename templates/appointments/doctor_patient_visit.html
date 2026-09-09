@@ -135,11 +135,56 @@
                                 <div class="visit-med-item">
                                     <span class="visit-med-name">{{ med.name }}</span>
                                     <span class="visit-med-dose">{{ med.dosage }}</span>
+                                    <form method="post" class="med-delete-form" style="display:inline;" onsubmit="return confirm('Delete this medication for the patient?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_medication">
+                                        <input type="hidden" name="med_id" value="{{ med.id }}">
+                                        <button type="submit" class="visit-med-delete" title="Delete medication">🗑️</button>
+                                    </form>
                                 </div>
                                 {% empty %}
                                 <p class="visit-empty-text">No medications recorded.</p>
                                 {% endfor %}
                             </div>
+                            <form method="post" class="visit-med-add-form" style="margin-top:12px; padding-top:12px; border-top:1px solid #e5e7eb;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="add_medication">
+                                <div class="visit-field-row">
+                                    <div class="visit-field">
+                                        <label>Name</label>
+                                        <input type="text" name="med_name" class="visit-input" placeholder="e.g., Metformin" required>
+                                    </div>
+                                    <div class="visit-field">
+                                        <label>Dosage</label>
+                                        <input type="text" name="med_dosage" class="visit-input" placeholder="e.g., 500mg" required>
+                                    </div>
+                                </div>
+                                <div class="visit-field-row">
+                                    <div class="visit-field">
+                                        <label>Time</label>
+                                        <input type="time" name="med_time" class="visit-input" required>
+                                    </div>
+                                    <div class="visit-field">
+                                        <label>Times/Day</label>
+                                        <input type="number" name="med_times_per_day" class="visit-input" value="1" min="1" max="6" style="width:80px;">
+                                    </div>
+                                </div>
+                                <div class="visit-field">
+                                    <label>Days</label>
+                                    <div class="day-checkboxes">
+                                        {% for val, label in day_choices %}
+                                        <label class="day-cb">
+                                            <input type="checkbox" name="med_days" value="{{ val }}">{{ label|slice:":3" }}
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="visit-field">
+                                    <label>Additional Times (comma-separated, e.g., 08:00,14:00,20:00)</label>
+                                    <input type="text" name="med_times_of_day" class="visit-input" placeholder="Optional: for multiple daily doses">
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Add Medication</button>
+                            </form>
                         </div>
 
                         <div class="visit-card">
