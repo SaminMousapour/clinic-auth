@@ -183,7 +183,7 @@
                 <div class="module-tag">Stay on Track</div>
             </a>
 
-            <a href="{% url 'patient_records' %}" class="module-card module-records">
+            <a href="{% url 'patient_records' %}" class="module-card module-records module-featured">
                 <div class="module-card-top">
                     <div class="module-icon">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -196,12 +196,13 @@
                     </div>
                     <svg class="module-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </div>
-                <h3>Medical Records</h3>
+                <h3>📋 Medical Records</h3>
                 <p>Add symptoms & notes for your doctor</p>
-                <div class="module-tag">Share with Doctor</div>
+                <div class="module-tag featured-tag">Essential for Care</div>
+                <div class="featured-badge">★ Doctor sees this</div>
             </a>
 
-            <a href="{% url 'patient_schedule' %}" class="module-card module-schedule">
+            <a href="{% url 'patient_schedule' %}" class="module-card module-schedule module-featured">
                 <div class="module-card-top">
                     <div class="module-icon">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -212,9 +213,10 @@
                     </div>
                     <svg class="module-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </div>
-                <h3>Weekly Schedule</h3>
+                <h3>📅 Weekly Schedule</h3>
                 <p>Plan your week, avoid conflicts</p>
-                <div class="module-tag">Stay Organized</div>
+                <div class="module-tag featured-tag">Prevent Double-Booking</div>
+                <div class="featured-badge">⚡ Smart Alerts</div>
             </a>
         </div>
 
@@ -262,6 +264,107 @@
 /* Module Schedule Card */
 .module-schedule .module-icon { background: linear-gradient(135deg, #8b5cf6, #3b82f6); }
 .module-schedule .module-icon svg { stroke: white; }
+
+/* Featured Modules - Medical Records & Weekly Schedule */
+.module-featured {
+    position: relative;
+    border: 2px solid;
+    border-image: linear-gradient(135deg, #ef4444, #f97316, #eab308) 1;
+    background: linear-gradient(145deg, #fff 0%, #fefce8 100%);
+    transform: scale(1.02);
+    box-shadow: 
+        0 8px 32px rgba(239, 68, 68, 0.15),
+        0 0 0 1px rgba(239, 68, 68, 0.1),
+        inset 0 1px 0 rgba(255,255,255,0.9);
+    animation: featuredPulse 3s ease-in-out infinite;
+    z-index: 1;
+}
+.module-featured:hover {
+    transform: scale(1.04) translateY(-4px);
+    box-shadow: 
+        0 16px 48px rgba(239, 68, 68, 0.25),
+        0 0 0 2px rgba(239, 68, 68, 0.2),
+        inset 0 1px 0 rgba(255,255,255,0.9);
+}
+@keyframes featuredPulse {
+    0%, 100% { box-shadow: 0 8px 32px rgba(239, 68, 68, 0.15), 0 0 0 1px rgba(239, 68, 68, 0.1), inset 0 1px 0 rgba(255,255,255,0.9); }
+    50% { box-shadow: 0 12px 40px rgba(239, 68, 68, 0.25), 0 0 0 2px rgba(239, 68, 68, 0.15), inset 0 1px 0 rgba(255,255,255,0.9); }
+}
+
+.module-featured::before {
+    content: '';
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #ef4444, #f97316, #eab308, #22c55e, #3b82f6, #8b5cf6);
+    background-size: 300% 300%;
+    z-index: -1;
+    opacity: 0.6;
+    animation: borderFlow 4s ease infinite;
+    filter: blur(8px);
+}
+@keyframes borderFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.module-records.module-featured .module-icon { background: linear-gradient(135deg, #ef4444, #f97316); }
+.module-records.module-featured .module-icon svg { stroke: white; }
+.module-schedule.module-featured .module-icon { background: linear-gradient(135deg, #8b5cf6, #3b82f6); }
+.module-schedule.module-featured .module-icon svg { stroke: white; }
+
+.module-featured h3 { font-size: 1.15rem; font-weight: 800; background: linear-gradient(135deg, #1e293b, #7c2d12); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.module-featured p { color: #78350f; font-weight: 500; }
+
+.featured-tag {
+    background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+    color: #92400e !important;
+    border: 1px solid #fcd34d !important;
+    font-weight: 700 !important;
+    font-size: .75rem !important;
+    padding: 4px 10px !important;
+    animation: tagGlow 2s ease-in-out infinite;
+}
+@keyframes tagGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+    50% { box-shadow: 0 0 12px 4px rgba(251, 191, 36, 0.3); }
+}
+
+.featured-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: .65rem;
+    font-weight: 700;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+    animation: badgeFloat 2.5s ease-in-out infinite;
+}
+@keyframes badgeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+/* Grid: put featured cards first on mobile */
+@media (max-width: 640px) {
+    .module-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+    .module-featured { order: -1; }
+    .module-records.module-featured { order: -2; }
+    .module-schedule.module-featured { order: -1; }
+}
+
+/* On desktop, make featured cards slightly wider in the grid */
+@media (min-width: 1024px) {
+    .module-grid { grid-template-columns: repeat(3, 1fr); }
+    .module-featured { grid-column: span 1; }
+}
 </style>
 
 <div class="notif-toast" id="notifToast">
