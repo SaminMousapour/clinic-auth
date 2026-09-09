@@ -133,9 +133,11 @@
                             <div class="visit-meds-list">
                                 {% for med in medications %}
                                 <div class="visit-med-item">
-                                    <span class="visit-med-name">{{ med.name }}</span>
-                                    <span class="visit-med-dose">{{ med.dosage }}</span>
-                                    <form method="post" class="med-delete-form" style="display:inline;" onsubmit="return confirm('Delete this medication for the patient?');">
+                                    <div class="med-info">
+                                        <span class="visit-med-name">{{ med.name }}</span>
+                                        <span class="visit-med-dose">{{ med.dosage }}</span>
+                                    </div>
+                                    <form method="post" class="med-delete-form" onsubmit="return confirm('Delete this medication for the patient?');">
                                         {% csrf_token %}
                                         <input type="hidden" name="action" value="delete_medication">
                                         <input type="hidden" name="med_id" value="{{ med.id }}">
@@ -146,7 +148,7 @@
                                 <p class="visit-empty-text">No medications recorded.</p>
                                 {% endfor %}
                             </div>
-                            <form method="post" class="visit-med-add-form" style="margin-top:12px; padding-top:12px; border-top:1px solid #e5e7eb;">
+                            <form method="post" class="visit-med-add-form">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="add_medication">
                                 <div class="visit-field-row">
@@ -166,7 +168,7 @@
                                     </div>
                                     <div class="visit-field">
                                         <label>Times/Day</label>
-                                        <input type="number" name="med_times_per_day" class="visit-input" value="1" min="1" max="6" style="width:80px;">
+                                        <input type="number" name="med_times_per_day" class="visit-input" value="1" min="1" max="6">
                                     </div>
                                 </div>
                                 <div class="visit-field">
@@ -183,7 +185,7 @@
                                     <label>Additional Times (comma-separated, e.g., 08:00,14:00,20:00)</label>
                                     <input type="text" name="med_times_of_day" class="visit-input" placeholder="Optional: for multiple daily doses">
                                 </div>
-                                <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Add Medication</button>
+                                <button type="submit" class="btn btn-primary">Add Medication</button>
                             </form>
                         </div>
 
