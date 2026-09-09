@@ -12,6 +12,7 @@ from datetime import date, timedelta
 from .models import User, Doctor, Patient, Appointment, Medication, HealthReading, INSURANCE_CHOICES, PatientVisit, MedicalRecord, Prescription, PatientRecord, DoctorOffDay, PatientSchedule
 import logging
 import json
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -123,22 +124,21 @@ def google_complete_profile(request):
 
     social = request.user.socialaccount_set.filter(provider='google').first()
     extra = social.extra_data if social else {}
-    g_first = extra.get('given_name') or request.user.first_name or ''
-    g_last = extra.get('family_name') or request.user.last_name or ''
     g_email = request.user.email or ''
 
     if request.method == 'POST':
         errors = []
-        first_name = request.POST.get('first_name', '').strip()
-        last_name = request.POST.get('last_name', '').strip()
+        username = request.POST.get('username', '').strip()
         age_raw = request.POST.get('age', '').strip()
-        phone = request.POST.get('phone', '').strip()
         insurance = request.POST.getlist('insurance')
+        password1 = request.POST.get('password1', '').strip()
+        password2 = request.POST.get('password2', '').strip()
 
-        if not first_name:
-            errors.append('First name is required.')
-        if not last_name:
-            errors.append('Last name is required.')
+        if not username:
+            errors.append('Username is required.')
+        elif User.objects.filter(username__iexact=username).exists():
+            errors.append('This username is already taken. Please choose another.')
+
         try:
             age = int(age_raw)
             if age < 1 or age > 120:
@@ -146,43 +146,53 @@ def google_complete_profile(request):
         except ValueError:
             age = 0
             errors.append('Valid age is required.')
-        import re as _re
-        if not _re.fullmatch(r'09\d{9}', phone):
-            errors.append('Phone must be 11 digits starting with 09.')
-        else:
-            for p in Patient.objects.exclude(user=request.user):
-                try:
-                    if p.phone == phone:
-                        errors.append('This phone number is already registered.')
-                        break
-                except Exception:
-                    continue
+
+        if len(password1) < 8:
+            errors.append('Password must be at least 8 characters long.')
+        if password1.isalpha():
+            errors.append('Password must contain at least one number.')
+        if password1.isdigit():
+            errors.append('Password must contain at least one letter.')
+        if password1 != password2:
+            errors.append('Passwords do not match.')
+
+        if not insurance:
+            errors.append('Please select at least one insurance provider.')
+
+        # Generate username suggestions if username is taken
+        username_suggestions = []
+        if username and User.objects.filter(username__iexact=username).exists():
+            base = re.sub(r'\d+$', '', username) or username
+            for i in range(1, 6):
+                suggestion = f"{base}{i}"
+                if not User.objects.filter(username__iexact=suggestion).exists():
+                    username_suggestions.append(suggestion)
 
         if errors:
             return render(request, 'google_complete_profile.html', {
                 'errors': errors,
                 'insurance_choices': INSURANCE_CHOICES,
                 'form_data': {
-                    'first_name': first_name, 'last_name': last_name,
-                    'age': age_raw, 'phone': phone, 'insurance': insurance,
+                    'username': username, 'age': age_raw, 'insurance': insurance,
                 },
+                'username_suggestions': username_suggestions,
+                'g_email': g_email,
             })
 
+        # Set password on user account
+        request.user.set_password(password1)
+        request.user.save()
+
         patient = Patient(user=request.user)
-        patient.first_name = first_name
-        patient.last_name = last_name
         patient.age = age
-        patient.phone = phone
-        patient.email = g_email
         patient.insurance = ','.join(insurance)
         patient.save()
+
         messages.success(request, 'Profile completed. Welcome!')
         return redirect('patient_dashboard')
 
     return render(request, 'google_complete_profile.html', {
         'insurance_choices': INSURANCE_CHOICES,
-        'g_first': g_first,
-        'g_last': g_last,
         'g_email': g_email,
     })
 
@@ -306,32 +316,22 @@ def login_view(request):
             except Doctor.DoesNotExist:
                 pass
 
-            # Try patient login (email/phone/username + password)
+            # Try patient login (username only + password)
             matched_patient = None
             try:
-                patients = Patient.objects.select_related('user').all()
-                logger.error("LOGIN DEBUG: total patients=%d", patients.count())
-                for p in patients:
-                    try:
-                        p_email = p.email
-                        p_phone = p.phone
-                        p_username = p.user.username
-                        logger.error("LOGIN DEBUG: checking patient username=%s email_match=%s phone_match=%s", p_username, p_email == identifier, p_phone == identifier)
-                        match = (p_email == identifier or p_phone == identifier or p_username == identifier)
-                    except Exception as e:
-                        logger.error("LOGIN DEBUG: decrypt error for patient: %s", e)
-                        match = (p.user.username == identifier)
-                    if match:
-                        patient_found = True
-                        pw_check = check_password(password, p.password_hash)
-                        logger.error("LOGIN DEBUG: password check=%s for patient=%s", pw_check, p.user.username)
-                        if pw_check:
-                            matched_patient = p
-                            break
-                        else:
-                            password_wrong = True
+                patient = Patient.objects.select_related('user').get(user__username__iexact=identifier)
+                logger.error("LOGIN DEBUG: found patient by username: %s", patient.user.username)
+                patient_found = True
+                pw_check = check_password(password, patient.password_hash)
+                logger.error("LOGIN DEBUG: password check=%s for patient=%s", pw_check, patient.user.username)
+                if pw_check:
+                    matched_patient = patient
+                else:
+                    password_wrong = True
+            except Patient.DoesNotExist:
+                logger.error("LOGIN DEBUG: no patient found for username=%s", identifier)
             except Exception as e:
-                logger.error("LOGIN DEBUG: patient loop error: %s", e, exc_info=True)
+                logger.error("LOGIN DEBUG: patient lookup error: %s", e, exc_info=True)
 
             if matched_patient:
                 logger.error("LOGIN DEBUG: logging in patient=%s", matched_patient.user.username)
@@ -349,15 +349,15 @@ def login_view(request):
 
             # More specific error messages
             if patient_found and password_wrong:
-                messages.error(request, 'Wrong password for this account. Please try again.')
+                messages.error(request, 'Wrong password for this username. Please try again.')
             elif tried_doctor and password_wrong:
                 messages.error(request, 'Wrong medical number. Please check and try again.')
             elif tried_admin and not user:
-                messages.error(request, 'No account found with that username/email/phone. Please check or register.')
+                messages.error(request, 'No admin account found with that username. Please check or register.')
             elif tried_patient and not patient_found:
-                messages.error(request, 'No account found with that username, email, or phone. Please check or register.')
+                messages.error(request, 'No account found with that username. Please check or register.')
             else:
-                messages.error(request, 'Invalid credentials. Please check your username/email/phone and password.')
+                messages.error(request, 'Invalid credentials. Please check your username and password.')
 
             return render(request, 'login.html')
 
@@ -371,11 +371,8 @@ def login_view(request):
 
 def register_patient(request):
     if request.method == 'POST':
-        first_name = request.POST.get('first_name', '').strip()
-        last_name = request.POST.get('last_name', '').strip()
+        username = request.POST.get('username', '').strip()
         age = request.POST.get('age', '').strip()
-        phone = request.POST.get('phone', '').strip()
-        email = request.POST.get('email', '').strip()
         insurance_list = request.POST.getlist('insurance')
         insurance = ','.join(insurance_list)
         password1 = request.POST.get('password1', '').strip()
@@ -383,28 +380,14 @@ def register_patient(request):
 
         errors = []
 
-        if not first_name:
-            errors.append('First name is required.')
-        if not last_name:
-            errors.append('Last name is required.')
-        if not age or not age.isdigit() or int(age) <= 0:
-            errors.append('Valid age is required.')
-        if not phone or len(phone) != 11 or not phone.startswith('09') or not phone.isdigit():
-            errors.append('Phone must be 11 digits starting with 09.')
-        # Accept Iranian local (09...) or worldwide E.164 (+countrycode...).
-        if not phone:
-            errors.append('Phone is required.')
-        else:
-            digits = ''.join(ch for ch in phone if ch.isdigit())
-            if not digits.isdigit() or len(digits) < 10:
-                errors.append('Phone must be a valid number (Iranian 09... or +countrycode...).')
-            elif phone.startswith('+') and not phone.startswith('+98'):
-                pass  # international number: fine
-            elif not phone.startswith('09') or len(phone) != 11:
-                if not phone.startswith('+'):
-                    errors.append('Phone must be 11 digits starting with 09 (Iran) or start with + for international numbers.')
-        if not email or '@' not in email:
-            errors.append('Valid email is required.')
+        if not username:
+            errors.append('Username is required.')
+        elif User.objects.filter(username__iexact=username).exists():
+            errors.append('This username is already taken. Please choose another.')
+
+        if not age or not age.isdigit() or int(age) <= 0 or int(age) > 120:
+            errors.append('Valid age is required (1-120).')
+
         if len(password1) < 8:
             errors.append('Password must be at least 8 characters long.')
         if password1.isalpha():
@@ -413,37 +396,33 @@ def register_patient(request):
             errors.append('Password must contain at least one letter.')
         if password1 != password2:
             errors.append('Passwords do not match.')
+
         if not insurance_list:
             errors.append('Please select at least one insurance provider.')
 
-        if not errors:
-            for p in Patient.objects.all():
-                if p.phone == phone:
-                    errors.append('This phone number is already registered.')
-                    break
-                if p.email == email:
-                    errors.append('This email is already registered.')
-                    break
-
-        username = request.POST.get('username', '').strip()
-        if not username:
-            errors.append('Username is required.')
-        elif User.objects.filter(username__iexact=username).exists():
-            errors.append('This username is already taken. Please choose another.')
+        # Generate username suggestions if username is taken
+        username_suggestions = []
+        if username and User.objects.filter(username__iexact=username).exists():
+            base = re.sub(r'\d+$', '', username) or username
+            for i in range(1, 6):
+                suggestion = f"{base}{i}"
+                if not User.objects.filter(username__iexact=suggestion).exists():
+                    username_suggestions.append(suggestion)
 
         if errors:
             for e in errors:
                 messages.error(request, e)
             return render(request, 'register.html', {
                 'insurance_choices': Patient.INSURANCE_CHOICES,
-                'form_data': {'insurances': insurance_list, 'first_name': first_name, 'last_name': last_name, 'age': age, 'phone': phone, 'email': email, 'username': username},
+                'form_data': {'username': username, 'age': age, 'insurances': insurance_list},
+                'username_suggestions': username_suggestions,
             })
 
         user = User.objects.create_user(
             username=username,
             password=password1,
             role='patient',
-            email=email
+            email=''  # email optional, not required
         )
 
         patient = Patient(
@@ -452,14 +431,10 @@ def register_patient(request):
             password_hash=make_password(password1),
             insurance=insurance
         )
-        patient.first_name = first_name
-        patient.last_name = last_name
-        patient.phone = phone
-        patient.email = email
         patient.save()
 
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-        messages.success(request, f'Registration successful! Your username is "{username}". Welcome!')
+        messages.success(request, f'Registration successful! Welcome, {username}!')
         return redirect('patient_dashboard')
 
     return render(request, 'register.html', {'insurance_choices': Patient.INSURANCE_CHOICES})
