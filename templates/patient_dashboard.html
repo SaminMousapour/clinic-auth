@@ -227,6 +227,37 @@
 </div>
 
 <style>
+/* Plain module cards – subtle clinic-appropriate depth */
+.module-card:not(.module-featured) {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    border: 1px solid #edf1f7;
+}
+.module-card:not(.module-featured):hover {
+    box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+}
+.module-card:not(.module-featured)::before { height: 5px; }
+.module-card:not(.module-featured):hover::before { height: 6px; }
+.module-appointments:not(.module-featured) { background: linear-gradient(160deg, #fff 40%, #eff6ff 100%); }
+.module-my-appointments:not(.module-featured) { background: linear-gradient(160deg, #fff 40%, #f0fdf4 100%); }
+.module-medications:not(.module-featured) { background: linear-gradient(160deg, #fff 40%, #fff7ed 100%); }
+.module-health:not(.module-featured) { background: linear-gradient(160deg, #fff 40%, #fef2f2 100%); }
+
+.module-card:not(.module-featured) .module-icon {
+    background: linear-gradient(135deg, var(--m-a, #e2e8f0) 0%, var(--m-b, #cbd5e1) 100%);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.module-card:not(.module-featured) .module-icon svg { stroke: white; }
+.module-appointments:not(.module-featured) { --m-a: #3b82f6; --m-b: #60a5fa; }
+.module-my-appointments:not(.module-featured) { --m-a: #22c55e; --m-b: #4ade80; }
+.module-medications:not(.module-featured) { --m-a: #f97316; --m-b: #fb923c; }
+.module-health:not(.module-featured) { --m-a: #ef4444; --m-b: #f87171; }
+
+.module-card:not(.module-featured) .module-tag {
+    background: rgba(255,255,255,0.85) !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+    backdrop-filter: blur(4px);
+}
+
 /* Schedule Preview */
 .schedule-preview {
     background: #fff;
