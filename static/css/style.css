@@ -3710,9 +3710,9 @@ body {
 }
 .visit-col-fixed .visit-section-title { flex-shrink: 0; }
 .visit-col-fixed .visit-meds-list {
+    flex: 1;
     overflow-y: auto;
-    max-height: 180px;
-    flex-shrink: 0;
+    min-height: 0;
 }
 .visit-col-fixed .visit-readings-list {
     flex: 1;
@@ -4055,13 +4055,34 @@ body {
 .visit-med-delete:hover { background: #fee2e2; }
 
 /* Medication add form */
+/* Medication add form */
 .visit-med-add-form {
-    padding-top: 12px;
-    margin-top: 12px;
-    border-top: 1px solid #e5e7eb;
     flex-shrink: 0;
     min-width: 0;
 }
+.visit-med-add-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+.visit-med-add-actions .btn {
+    flex: 1;
+    padding: 10px;
+}
+.visit-med-add-btn {
+    margin-top: 12px;
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.visit-med-add-btn svg { vertical-align: middle; }
+#medAdd {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+#medAdd .visit-med-add-form { padding-top: 4px; }
 .visit-med-add-form .visit-field-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
