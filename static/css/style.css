@@ -3704,8 +3704,16 @@ body {
     flex-direction: column;
     min-height: 0;
 }
+.visit-col-fixed .visit-card.visit-card-meds {
+    flex: 0 0 auto;
+    overflow: visible;
+}
 .visit-col-fixed .visit-section-title { flex-shrink: 0; }
-.visit-col-fixed .visit-meds-list,
+.visit-col-fixed .visit-meds-list {
+    overflow-y: auto;
+    max-height: 180px;
+    flex-shrink: 0;
+}
 .visit-col-fixed .visit-readings-list {
     flex: 1;
     overflow-y: auto;
@@ -4018,13 +4026,23 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     padding: 8px 10px;
     background: #f8fafc;
     border-radius: 8px;
     font-size: 0.85rem;
+    min-width: 0;
 }
-.visit-med-name { font-weight: 600; color: #1e293b; }
-.visit-med-dose { color: #64748b; font-size: 0.8rem; }
+.med-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+.visit-med-name { font-weight: 600; color: #1e293b; word-break: break-word; }
+.visit-med-dose { color: #64748b; font-size: 0.8rem; word-break: break-word; }
+.med-delete-form { flex-shrink: 0; display: inline-flex; }
 .visit-med-delete {
     background: none;
     border: none;
@@ -4041,14 +4059,18 @@ body {
     padding-top: 12px;
     margin-top: 12px;
     border-top: 1px solid #e5e7eb;
+    flex-shrink: 0;
+    min-width: 0;
 }
 .visit-med-add-form .visit-field-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+    min-width: 0;
 }
 .visit-med-add-form .visit-field {
     margin-bottom: 10px;
+    min-width: 0;
 }
 .visit-med-add-form .visit-field label {
     display: block;
@@ -4059,6 +4081,8 @@ body {
 }
 .visit-med-add-form .visit-input {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
     padding: 8px 10px;
     border: 1px solid #d1d5db;
     border-radius: 6px;
