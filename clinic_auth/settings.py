@@ -127,7 +127,7 @@ else:
 AUTH_PASSWORD_VALIDATORS = []
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = os.environ.get('DJANGO_TIME_ZONE', 'Asia/Tehran')
 USE_I18N = True
 
 # Clinic local timezone used for scheduling reminder emails (e.g. Asia/Tehran)
@@ -217,8 +217,10 @@ TELEGRAM_BOT_LOGO_URL = os.environ.get('TELEGRAM_BOT_LOGO_URL', '')
 # Optional base URL for the Telegram webhook (e.g. https://web-production-38b5b9.up.railway.app).
 # Falls back to RAILWAY_PUBLIC_DOMAIN, then ALLOWED_HOSTS[0].
 TELEGRAM_WEBHOOK_BASE = os.environ.get('TELEGRAM_WEBHOOK_BASE', '')
-# Secret for test endpoints (e.g. /test/doctor-list-now/?token=...)
-TEST_TRIGGER_SECRET = os.environ.get('TEST_TRIGGER_SECRET', 'test-secret-change-me')
+# Secret for test endpoints (e.g. /test/doctor-list-now/?token=...).
+# Must be set explicitly; the legacy default is intentionally NOT usable (the
+# helper in accounts.views rejects it) because the repo is public.
+TEST_TRIGGER_SECRET = os.environ.get('TEST_TRIGGER_SECRET', '')
 
 # Security headers for production HTTPS.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

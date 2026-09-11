@@ -41,10 +41,54 @@
         <button type="submit" class="btn btn-primary btn-block btn-lg">Login</button>
     </form>
 
+    <div class="demo-access" id="demoAccess">
+        <div class="demo-access-head">
+            <span>Demo accounts</span>
+            <button type="button" class="demo-access-toggle" onclick="document.getElementById('demoAccess').classList.toggle('open')">Show</button>
+        </div>
+        <div class="demo-access-body">
+            <p class="demo-access-hint">Click a role to fill the login form, then press Login.</p>
+            <div class="demo-access-grid">
+                <button type="button" class="demo-card" data-username="demopatient" data-password="DemoPass123">
+                    <span class="demo-role">Patient</span>
+                    <span class="demo-user">demopatient</span>
+                    <span class="demo-pass">DemoPass123</span>
+                </button>
+                <button type="button" class="demo-card" data-username="davidmaxwell" data-password="1001">
+                    <span class="demo-role">Doctor</span>
+                    <span class="demo-user">davidmaxwell</span>
+                    <span class="demo-pass">1001</span>
+                </button>
+                <button type="button" class="demo-card" data-username="sam" data-password="">
+                    <span class="demo-role">Admin</span>
+                    <span class="demo-user">sam</span>
+                    <span class="demo-pass">your admin password</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <p class="form-footer"><a href="{% url 'password_reset_request' %}">Forgot your password?</a></p>
     <p class="form-footer">Don't have an account? <a href="{% url 'register' %}">Register as Patient</a></p>
     <div class="back-link">
         <a href="{% url 'home' %}">Back to Home</a>
     </div>
 </div>
+
+<script>
+(function() {
+    var cards = document.querySelectorAll('.demo-card');
+    var idField = document.getElementById('identifier');
+    var pwField = document.getElementById('password');
+    cards.forEach(function(card) {
+        card.addEventListener('click', function() {
+            idField.value = card.dataset.username;
+            pwField.value = card.dataset.password || '';
+            cards.forEach(function(c) { c.classList.remove('filled'); });
+            card.classList.add('filled');
+            (card.dataset.password ? idField : pwField).focus();
+        });
+    });
+})();
+</script>
 {% endblock %}

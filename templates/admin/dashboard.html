@@ -48,6 +48,10 @@
             <a href="{% url 'admin_panel' %}" class="btn btn-ghost btn-sm">Clear</a>
             {% endif %}
         </form>
+        <form method="post" action="{% url 'admin_reset_demo' %}" class="admin-reset-demo" onsubmit="return confirm('Reset all clinic data and reload the demo dataset? This deletes current patients, appointments, medications and readings.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-ghost">↻ Reset demo data</button>
+        </form>
         {% if q or role_filter %}
         <p class="admin-search-result">
             {{ regular_users|length }} user{{ regular_users|length|pluralize }} match{% if q %} "{{ q }}"{% endif %}{% if role_filter %} ({{ role_filter }}){% endif %} out of {{ total_users }} regular users.

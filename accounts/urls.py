@@ -25,6 +25,7 @@ urlpatterns = [
 
     # Admin URLs
     path('admin-panel/', views.admin_panel, name='admin_panel'),
+    path('admin-panel/reset-demo/', views.admin_reset_demo, name='admin_reset_demo'),
     path('admin-panel/add-doctor/', views.admin_add_doctor, name='admin_add_doctor'),
     path('admin-panel/promote/', views.admin_promote_user, name='admin_promote_user'),
     path('admin-panel/demote/', views.admin_demote_user, name='admin_demote_user'),

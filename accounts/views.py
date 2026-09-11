@@ -60,13 +60,11 @@ def home(request):
 
 @login_required
 def patient_dashboard(request):
-    logger.error("DASHBOARD DEBUG: user=%s, role=%s, is_authenticated=%s", request.user, getattr(request.user, 'role', 'NO ROLE'), request.user.is_authenticated)
     if request.user.role != 'patient':
         return redirect('home')
 
     try:
         patient = request.user.patient_profile
-        logger.error("DASHBOARD DEBUG: patient found, first_name_encrypted=%s", patient.first_name_encrypted[:20] if patient.first_name_encrypted else 'EMPTY')
     except Exception as e:
         logger.error("PATIENT_DASH error for user %s: %s", request.user, e, exc_info=True)
         return redirect('google_complete_profile')
@@ -279,7 +277,7 @@ def login_view(request):
 
             # Try admin login first (username + password)
             user = authenticate(request, username=identifier, password=password)
-            logger.error("LOGIN DEBUG: authenticate result=%s, is_admin=%s", user, user.is_admin_user if user else 'N/A')
+            logger.debug("LOGIN DEBUG: authenticate result=%s, is_admin=%s", user, user.is_admin_user if user else 'N/A')
             if user and user.is_admin_user:
                 login(request, user)
                 return redirect('admin_panel')
@@ -288,7 +286,7 @@ def login_view(request):
             # Try doctor login (username or name, password = medical_number)
             try:
                 doctor = Doctor.objects.get(user__username=identifier)
-                logger.error("LOGIN DEBUG: found doctor by username: %s", doctor)
+                logger.debug("LOGIN DEBUG: found doctor by username: %s", doctor)
                 tried_doctor = True
                 if doctor.user.check_password(password):
                     login(request, doctor.user, backend='django.contrib.auth.backends.ModelBackend')
@@ -306,7 +304,7 @@ def login_view(request):
                         matched_doctor = d
                         break
                 if matched_doctor:
-                    logger.error("LOGIN DEBUG: found doctor by name: %s", matched_doctor)
+                    logger.debug("LOGIN DEBUG: found doctor by name: %s", matched_doctor)
                     tried_doctor = True
                     if matched_doctor.user.check_password(password):
                         login(request, matched_doctor.user, backend='django.contrib.auth.backends.ModelBackend')
@@ -320,25 +318,25 @@ def login_view(request):
             matched_patient = None
             try:
                 patient = Patient.objects.select_related('user').get(user__username__iexact=identifier)
-                logger.error("LOGIN DEBUG: found patient by username: %s", patient.user.username)
+                logger.debug("LOGIN DEBUG: found patient by username: %s", patient.user.username)
                 patient_found = True
                 pw_check = check_password(password, patient.password_hash)
-                logger.error("LOGIN DEBUG: password check=%s for patient=%s", pw_check, patient.user.username)
+                logger.debug("LOGIN DEBUG: password check=%s for patient=%s", pw_check, patient.user.username)
                 if pw_check:
                     matched_patient = patient
                 else:
                     password_wrong = True
             except Patient.DoesNotExist:
-                logger.error("LOGIN DEBUG: no patient found for username=%s", identifier)
+                logger.debug("LOGIN DEBUG: no patient found for username=%s", identifier)
             except Exception as e:
-                logger.error("LOGIN DEBUG: patient lookup error: %s", e, exc_info=True)
+                logger.debug("LOGIN DEBUG: patient lookup error: %s", e, exc_info=True)
 
             if matched_patient:
-                logger.error("LOGIN DEBUG: logging in patient=%s", matched_patient.user.username)
+                logger.debug("LOGIN DEBUG: logging in patient=%s", matched_patient.user.username)
                 login(request, matched_patient.user, backend='django.contrib.auth.backends.ModelBackend')
                 return redirect('patient_dashboard')
             else:
-                logger.error("LOGIN DEBUG: no matched patient for identifier=%s", identifier)
+                logger.debug("LOGIN DEBUG: no matched patient for identifier=%s", identifier)
             tried_patient = True
 
             # Try admin with username (in case identifier is username)
@@ -977,6 +975,32 @@ def admin_panel(request):
         'role_filter': role_filter,
         'total_users': len(all_users),
     })
+
+
+@login_required
+def admin_reset_demo(request):
+    """Wipe clinic data and re-seed the presentation-ready demo dataset.
+    Admin-only; safe to hit right before a demo.
+    """
+    if not request.user.is_admin_user:
+        messages.error(request, 'Access denied. Admins only.')
+        return redirect('home')
+
+    if request.method == 'POST':
+        from django.core.management import call_command
+        try:
+            call_command('reset_clinic_data')
+            call_command('seed_demo')
+            messages.success(
+                request,
+                'Demo data reset. Patients: demopatient, demoleila, demohassan (password DemoPass123).',
+            )
+        except Exception as e:
+            logger.error("Reset demo failed: %s", e, exc_info=True)
+            messages.error(request, 'Reset failed. Check server logs.')
+        return redirect('admin_panel')
+
+    return redirect('admin_panel')
 
 
 @login_required
@@ -1782,7 +1806,23 @@ def telegram_disconnect(request):
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
-@csrf_exempt
+_DEFAULT_TEST_SECRET = 'test-secret-change-me'
+
+
+def _test_token_valid(request):
+    """True only if a non-default TEST_TRIGGER_SECRET was supplied in the request.
+
+    The historical default is rejected on purpose: with a public repository, the
+    default value is known to everyone, so the /test/* endpoints must not accept
+    it in production.
+    """
+    secret = getattr(settings, 'TEST_TRIGGER_SECRET', '')
+    if not secret or secret == _DEFAULT_TEST_SECRET:
+        return False
+    token = request.GET.get('token') or request.POST.get('token')
+    return token == secret
+
+
 def _ensure_test_doctor(username='max', name='Max Doctor'):
     """
     Create (or repair) a test doctor: User with role 'doctor' (hashed password)
@@ -1844,8 +1884,7 @@ def test_create_doctor(request):
     if request.method not in ('GET', 'POST'):
         from django.http import HttpResponseNotAllowed
         return HttpResponseNotAllowed(['GET', 'POST'])
-    secret = request.GET.get('token') or request.POST.get('token')
-    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+    if not _test_token_valid(request):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden('Invalid token')
     username = request.GET.get('username') or request.POST.get('username') or 'testdoctor'
@@ -1870,8 +1909,7 @@ def test_bot_link(request):
     dashboard Connect button does, without needing a browser session.
     ?username=X&clear=1  clears token+chat_id for that user.
     """
-    secret = request.GET.get('token') or request.POST.get('token')
-    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+    if not _test_token_valid(request):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden('Invalid token')
     username = request.GET.get('username') or request.POST.get('username')
@@ -1898,8 +1936,7 @@ def test_bot_link(request):
 @csrf_exempt
 def test_doctor_list_now(request):
     """Trigger the doctor patient list for TOMORROW right now (secret token)."""
-    secret = request.GET.get('token') or request.POST.get('token')
-    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+    if not _test_token_valid(request):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden('Invalid token')
     from accounts.email_utils import send_doctor_patient_lists_for_day, _clinic_today
@@ -1913,8 +1950,7 @@ def test_doctor_list_now(request):
 @csrf_exempt
 def test_database_view(request):
     """Read-only dump of users, doctors, appointments, and meds (secret token)."""
-    secret = request.GET.get('token') or request.POST.get('token')
-    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+    if not _test_token_valid(request):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden('Invalid token')
     from django.contrib.auth import get_user_model
@@ -2006,8 +2042,7 @@ def test_reset_data(request):
     Used to recover from encryption-key rotation on ephemeral hosts, which leaves
     stored names undecryptable. Run once after deploying a stable encryption key.
     """
-    secret = request.GET.get('token') or request.POST.get('token')
-    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+    if not _test_token_valid(request):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden('Invalid token')
     from django.core.management import call_command
@@ -2018,8 +2053,7 @@ def test_reset_data(request):
 
 @csrf_exempt
 def test_seed_data(request):
-    secret = request.GET.get('token') or request.POST.get('token')
-    if secret != getattr(settings, 'TEST_TRIGGER_SECRET', ''):
+    if not _test_token_valid(request):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden('Invalid token')
     from django.contrib.auth import get_user_model

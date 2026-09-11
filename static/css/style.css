@@ -2215,6 +2215,56 @@ body {
 
 .back-link a:hover { color: #1e3a8a; }
 
+/* Demo accounts quick-fill (login page) */
+.demo-access {
+    margin-top: 22px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+    overflow: hidden;
+}
+.demo-access-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #475569;
+    letter-spacing: 0.02em;
+}
+.demo-access-toggle {
+    border: none;
+    background: none;
+    color: #3b82f6;
+    font-weight: 600;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+.demo-access-body { display: none; padding: 0 14px 14px; }
+.demo-access.open .demo-access-body { display: block; }
+.demo-access.open .demo-access-toggle::after { content: ''; }
+.demo-access-hint { margin: 0 0 10px; font-size: 0.75rem; color: #94a3b8; }
+.demo-access-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.demo-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.demo-card:hover { border-color: #93c5fd; box-shadow: 0 4px 12px rgba(59,130,246,0.12); transform: translateY(-1px); }
+.demo-card.filled { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+.demo-role { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #3b82f6; }
+.demo-user { font-size: 0.82rem; font-weight: 600; color: #1e293b; }
+.demo-pass { font-size: 0.68rem; color: #94a3b8; word-break: break-all; }
+
+
 /* ============================================
    TRUNCATE TOOLTIP
    ============================================ */
@@ -3481,6 +3531,9 @@ body {
 .admin-search-role:focus { outline: none; border-color: #3b82f6; }
 .admin-search-form .btn { flex-shrink: 0; }
 .admin-search-result { margin: 12px 0 0; font-size: 0.85rem; color: #64748b; }
+.admin-reset-demo { margin-top: 10px; text-align: right; }
+.admin-reset-demo .btn { font-size: 0.8rem; color: #64748b; }
+.admin-reset-demo .btn:hover { color: #dc2626; }
 
 .admin-section { margin-bottom: 36px; padding-bottom: 28px; border-bottom: 1px solid #f1f5f9; }
 .admin-section:last-of-type { border-bottom: none; padding-bottom: 0; }
