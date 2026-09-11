@@ -916,16 +916,66 @@ def admin_panel(request):
         messages.error(request, 'Access denied. Admins only.')
         return redirect('home')
 
-    doctors = Doctor.objects.all()
+    q = request.GET.get('q', '').strip().lower()
+    role_filter = request.GET.get('role', '').strip()
+
+    def user_matches(user, ql, role_filter):
+        if role_filter and user.role != role_filter:
+            return False
+        if not ql:
+            return True
+        if ql in user.username.lower():
+            return True
+        if user.role == 'patient' and hasattr(user, 'patient_profile'):
+            p = user.patient_profile
+            if ql in p.full_name.lower():
+                return True
+            if ql in p.get_insurance_display_name().lower():
+                return True
+            if any(ql in key.lower() for key in p.get_insurance_list()):
+                return True
+        elif user.role == 'doctor' and hasattr(user, 'doctor_profile'):
+            d = user.doctor_profile
+            if ql in ('dr. ' + d.name).lower() or ql in d.name.lower():
+                return True
+            if ql in d.specialty.lower():
+                return True
+            if ql in d.get_accepted_insurance_display().lower():
+                return True
+            if any(ql in key.lower() for key in d.get_accepted_insurance_list()):
+                return True
+        return False
+
+    def doctor_matches(doctor, ql, role_filter):
+        if role_filter == 'patient':
+            return False
+        if not ql:
+            return True
+        if ql in doctor.name.lower() or ql in ('dr. ' + doctor.name).lower():
+            return True
+        if ql in doctor.specialty.lower():
+            return True
+        if ql in doctor.get_accepted_insurance_display().lower():
+            return True
+        if any(ql in key.lower() for key in doctor.get_accepted_insurance_list()):
+            return True
+        return False
+
+    all_users = list(User.objects.filter(is_admin_user=False).order_by('username'))
+    regular_users = [u for u in all_users if user_matches(u, q, role_filter)]
+    doctors = [d for d in Doctor.objects.all() if doctor_matches(d, q, role_filter)]
+    admin_users = [u for u in User.objects.filter(is_admin_user=True).exclude(username='sam')
+                   if user_matches(u, q, role_filter)]
     appointments = Appointment.objects.filter(is_cancelled=False).order_by('year', 'month', 'day', 'hour')
-    regular_users = User.objects.filter(is_admin_user=False)
-    admin_users = User.objects.filter(is_admin_user=True).exclude(username='sam')
 
     return render(request, 'admin/dashboard.html', {
         'doctors': doctors,
         'appointments': appointments,
         'regular_users': regular_users,
         'admin_users': admin_users,
+        'q': q,
+        'role_filter': role_filter,
+        'total_users': len(all_users),
     })
 
 

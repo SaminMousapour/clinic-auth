@@ -32,6 +32,29 @@
 
     <h1>Admin Dashboard</h1>
 
+    <div class="admin-search">
+        <form method="get" action="{% url 'admin_panel' %}" class="admin-search-form">
+            <div class="admin-search-input-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="admin-search-icon"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input type="text" name="q" value="{{ q }}" placeholder="Search by name, username, insurance, specialty..." autocomplete="off">
+            </div>
+            <select name="role" class="admin-search-role">
+                <option value="">All Roles</option>
+                <option value="patient" {% if role_filter == 'patient' %}selected{% endif %}>Patient</option>
+                <option value="doctor" {% if role_filter == 'doctor' %}selected{% endif %}>Doctor</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Search</button>
+            {% if q or role_filter %}
+            <a href="{% url 'admin_panel' %}" class="btn btn-ghost btn-sm">Clear</a>
+            {% endif %}
+        </form>
+        {% if q or role_filter %}
+        <p class="admin-search-result">
+            {{ regular_users|length }} user{{ regular_users|length|pluralize }} match{% if q %} "{{ q }}"{% endif %}{% if role_filter %} ({{ role_filter }}){% endif %} out of {{ total_users }} regular users.
+        </p>
+        {% endif %}
+    </div>
+
     <div class="admin-section">
         <div class="section-header">
             <h2>Doctors</h2>
@@ -111,6 +134,7 @@
         <table class="admin-table">
             <thead>
                 <tr>
+                    <th>Name</th>
                     <th>Username</th>
                     <th>Role</th>
                     <th>Insurance Info</th>
@@ -120,6 +144,15 @@
             <tbody>
                 {% for user in regular_users %}
                 <tr>
+                    <td class="truncated" title="{% if user.role == 'patient' and user.patient_profile %}{{ user.patient_profile.full_name }}{% elif user.role == 'doctor' and user.doctor_profile %}Dr. {{ user.doctor_profile.name }}{% endif %}">
+                        {% if user.role == 'patient' and user.patient_profile %}
+                            {{ user.patient_profile.full_name }}
+                        {% elif user.role == 'doctor' and user.doctor_profile %}
+                            Dr. {{ user.doctor_profile.name }}
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </td>
                     <td class="truncated" title="{{ user.username }}">{{ user.username }}</td>
                     <td><span class="badge role-{{ user.role }}">{{ user.role }}</span></td>
                     <td class="truncated" style="font-size:0.82rem; max-width:260px;" title="{% if user.role == 'patient' and user.patient_profile %}{{ user.patient_profile.get_insurance_display_name }}{% elif user.role == 'doctor' and user.doctor_profile %}{{ user.doctor_profile.get_accepted_insurance_display }}{% endif %}">

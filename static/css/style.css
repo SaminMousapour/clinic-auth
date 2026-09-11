@@ -3464,6 +3464,24 @@ body {
 .admin-container h1 { font-size: 2rem; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
 .admin-container h2 { font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 16px; }
 
+.admin-search { margin: 24px 0 28px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; }
+.admin-search-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.admin-search-input-wrap { position: relative; flex: 1; min-width: 240px; }
+.admin-search-icon { position: absolute; top: 50%; left: 12px; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
+.admin-search-input-wrap input {
+    width: 100%; padding: 11px 14px 11px 38px; border: 2px solid #e2e8f0; border-radius: 10px;
+    font-size: 0.95rem; font-family: inherit; color: #1e293b; background: white; box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.admin-search-input-wrap input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+.admin-search-role {
+    padding: 11px 14px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 0.95rem;
+    font-family: inherit; color: #1e293b; background: white; cursor: pointer; box-sizing: border-box;
+}
+.admin-search-role:focus { outline: none; border-color: #3b82f6; }
+.admin-search-form .btn { flex-shrink: 0; }
+.admin-search-result { margin: 12px 0 0; font-size: 0.85rem; color: #64748b; }
+
 .admin-section { margin-bottom: 36px; padding-bottom: 28px; border-bottom: 1px solid #f1f5f9; }
 .admin-section:last-of-type { border-bottom: none; padding-bottom: 0; }
 
