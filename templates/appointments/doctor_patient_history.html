@@ -16,7 +16,6 @@
             </a>
             <div class="dash-nav-right">
                 <a href="{% url 'doctor_appointments' %}" class="btn btn-sm btn-ghost">Dashboard</a>
-                <button type="button" onclick="history.back()" class="btn btn-sm btn-primary" style="margin-left:8px; cursor:pointer;">← Back to Visit</button>
                 <span class="dash-user">Dr. {{ doctor.name }}</span>
                 <a href="{% url 'logout' %}" class="btn btn-sm btn-ghost">Logout</a>
             </div>
@@ -33,13 +32,9 @@
         {% endif %}
 
         <div class="visit-header">
-            <a href="{% url 'doctor_appointments' %}" class="visit-back">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                Dashboard
-            </a>
             <button type="button" onclick="history.back()" class="visit-back" style="cursor:pointer; border:none; background:none; font-family:inherit; font-size:0.9rem; color:#1e40af;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                Back to Writing Page
+                Back to Visit
             </button>
             <div class="visit-patient-info">
                 <div class="visit-avatar">{{ patient.full_name.0 }}</div>
