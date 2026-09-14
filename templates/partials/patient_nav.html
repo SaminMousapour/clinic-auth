@@ -10,7 +10,7 @@
         </a>
         <div class="dash-nav-right">
             <a href="{% url 'patient_dashboard' %}" class="btn btn-sm btn-ghost">Dashboard</a>
-            <span class="dash-user">{{ user.patient_profile.first_name }}</span>
+            <span class="dash-user">{{ user.username }}</span>
             <a href="{% url 'logout' %}" class="btn btn-sm btn-ghost">Logout</a>
         </div>
     </div>

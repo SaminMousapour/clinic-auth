@@ -76,6 +76,7 @@
                     <span class="cal-leg"><i class="cal-dot cal-dot-off"></i> Day Off</span>
                     <span class="cal-leg"><i class="cal-dot cal-dot-both"></i> Both</span>
                     <span class="cal-leg"><i class="cal-dot cal-dot-today"></i> Today</span>
+                    <span class="cal-leg"><i class="cal-dot cal-dot-weekend"></i> Weekend (Closed)</span>
                 </div>
                 <div class="calendar-grid" id="calendarGrid"></div>
             </div>
@@ -195,6 +196,7 @@
             const el = document.createElement('div');
             el.className = 'cal-day-header';
             el.textContent = d;
+            if (d === 'Sun' || d === 'Sat') el.classList.add('cal-weekend-header');
             grid.appendChild(el);
         });
 
@@ -212,12 +214,17 @@
             const isOff = offDays.has(dateStr);
             const hasAppt = apptDays.has(dateStr);
             const isToday = cellDate.getTime() === today.getTime();
+            const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
 
             const el = document.createElement('div');
             el.className = 'cal-day';
             el.dataset.date = dateStr;
             el.innerHTML = `<span class="cal-day-num">${day}</span>`;
 
+            if (isWeekend) {
+                el.classList.add('cal-weekend');
+                el.dataset.status = 'weekend';
+            }
             if (isOff && hasAppt) {
                 el.classList.add('cal-both');
                 el.dataset.status = 'both';
@@ -233,7 +240,11 @@
             }
             if (isToday) el.classList.add('cal-today');
 
-            el.addEventListener('click', () => toggleOffDay(dateStr, el));
+            if (isWeekend) {
+                el.title = 'Weekend - clinic closed';
+            } else {
+                el.addEventListener('click', () => toggleOffDay(dateStr, el));
+            }
             grid.appendChild(el);
         }
     }

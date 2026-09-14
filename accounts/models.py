@@ -71,11 +71,11 @@ class Patient(models.Model):
     INSURANCE_CHOICES = INSURANCE_CHOICES
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='patient_profile')
-    first_name_encrypted = models.TextField()
-    last_name_encrypted = models.TextField()
+    first_name_encrypted = models.TextField(null=True, blank=True)
+    last_name_encrypted = models.TextField(null=True, blank=True)
     age = models.IntegerField()
-    phone_encrypted = models.TextField(unique=True)
-    email_encrypted = models.TextField(unique=True)
+    phone_encrypted = models.TextField(unique=True, null=True, blank=True)
+    email_encrypted = models.TextField(unique=True, null=True, blank=True)
     password_hash = models.CharField(max_length=128, default='')
     insurance = models.CharField(max_length=500, default='', blank=True, help_text='Comma-separated insurance keys')
     blood_type = models.CharField(max_length=5, default='', blank=True)
@@ -117,7 +117,8 @@ class Patient(models.Model):
 
     @property
     def full_name(self):
-        return f"{self.first_name} {self.last_name}"
+        parts = [p for p in (self.first_name, self.last_name) if p and p != '[decryption error]']
+        return ' '.join(parts) or self.user.username
 
     def get_insurance_display_name(self):
         insurance_names = {
@@ -148,7 +149,7 @@ class Patient(models.Model):
         return [i.strip() for i in self.insurance.split(',') if i.strip()]
 
     def __str__(self):
-        return self.full_name
+        return self.user.username
 
 
 class Appointment(models.Model):

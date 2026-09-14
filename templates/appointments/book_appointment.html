@@ -28,8 +28,12 @@
             </ul>
             <div class="conflict-actions">
                 <a href="{% url 'patient_schedule' %}" class="btn btn-sm btn-ghost" target="_blank">View Full Schedule</a>
-                <button class="btn btn-sm btn-primary" onclick="window.history.back()">Choose Different Time</button>
+                <a href="?doctor_id={{ selected_doctor.id }}&day={{ selected_day }}&month={{ selected_month }}&year={{ selected_year }}" class="btn btn-sm btn-primary">Choose Different Time</a>
             </div>
+            <label class="conflict-confirm">
+                <input type="checkbox" name="confirm_conflict" id="confirmConflict" value="1" form="bookForm">
+                <span>I understand the conflict and want to book anyway</span>
+            </label>
         </div>
     </div>
     {% endif %}
@@ -123,6 +127,10 @@
             <div class="cal-day off-day">
                 {{ d }}<span class="cal-day-label-off">OFF</span>
             </div>
+            {% elif d in weekend_days %}
+            <div class="cal-day weekend" title="Clinic closed on weekends">
+                {{ d }}<span class="cal-day-label-off">✕</span>
+            </div>
             {% else %}
             <div class="cal-day available" onclick="pickDay({{ d }})">
                 {{ d }}
@@ -172,7 +180,7 @@
                     <span class="slot-status-text">Booked</span>
                 </div>
                 {% else %}
-                <div class="time-slot available" onclick="selectTime(this, {{ hour }})">
+                <div class="time-slot available{% if selected_hour == hour %} selected{% endif %}" data-hour="{{ hour }}"{% if selected_hour == hour %} data-preselected="true"{% endif %} onclick="selectTime(this, {{ hour }})">
                     <span class="slot-icon">&#10004;</span>
                     <span class="slot-time">{{ hour }}:00</span>
                     <span class="slot-status-text">Available</span>
@@ -204,6 +212,17 @@
     </div>
 </div>
 
+<style>
+.conflict-warning { background:#fff7ed; border:1px solid #fdba74; border-radius:12px; padding:16px; margin:16px 0; display:flex; align-items:flex-start; gap:12px; }
+.conflict-icon { font-size:1.5rem; flex-shrink:0; margin-top:2px; }
+.conflict-content h4 { margin:0 0 8px; color:#7c2d12; font-size:1rem; }
+.conflict-content p { margin:4px 0; color:#9a3412; font-size:.9rem; }
+.conflict-list { margin:8px 0 0; padding-left:20px; color:#9a3412; font-size:.85rem; }
+.conflict-list li { margin:4px 0; }
+.conflict-actions { display:flex; gap:8px; margin:12px 0 8px; }
+.conflict-confirm { display:flex; align-items:center; gap:8px; padding-top:12px; border-top:1px dashed #fdba74; font-size:.88rem; color:#7c2d12; font-weight:600; cursor:pointer; }
+.conflict-confirm input { width:auto; }
+</style>
 <script>
 function pickDay(day) {
     var params = new URLSearchParams(window.location.search);
@@ -220,5 +239,21 @@ function selectTime(el, hour) {
     document.getElementById('confirmBtn').disabled = false;
     document.getElementById('selectHint').style.display = 'none';
 }
+
+(function () {
+    var pre = document.querySelector('.time-slot[data-preselected="true"]');
+    if (pre) selectTime(pre, parseInt(pre.dataset.hour, 10));
+
+    var form = document.getElementById('bookForm');
+    var conflictBox = document.getElementById('confirmConflict');
+    if (form && conflictBox) {
+        form.addEventListener('submit', function (e) {
+            if (!conflictBox.checked) {
+                e.preventDefault();
+                alert('Please tick "I understand the conflict and want to book anyway" to confirm, or choose a different time.');
+            }
+        });
+    }
+})();
 </script>
 {% endblock %}

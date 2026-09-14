@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Patient History - {{ patient.full_name }}{% endblock %}
+{% block title %}Patient History - {{ patient.user.username }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-page">
@@ -37,9 +37,9 @@
                 Back to Visit
             </button>
             <div class="visit-patient-info">
-                <div class="visit-avatar">{{ patient.full_name.0 }}</div>
+                <div class="visit-avatar">{{ patient.user.username.0 }}</div>
                 <div>
-                    <h1 class="visit-name">{{ patient.full_name }}</h1>
+                    <h1 class="visit-name">{{ patient.user.username }}</h1>
                     <div class="visit-meta">
                         Age {{ patient.age }} &middot; {{ patient.phone }} &middot; {{ patient.get_insurance_display_name }}
                     </div>

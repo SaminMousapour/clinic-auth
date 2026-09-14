@@ -2,12 +2,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.static import serve
 from django.conf import settings
+from pathlib import Path
 from datetime import date, timedelta
 from .models import User, Doctor, Patient, Appointment, Medication, HealthReading, INSURANCE_CHOICES, PatientVisit, MedicalRecord, Prescription, PatientRecord, DoctorOffDay, PatientSchedule
 import logging
@@ -41,6 +43,21 @@ def _doctor_card_class(specialty):
         slug,
         _SPECIALTY_CSS_FALLBACK[zlib.crc32(slug.encode('utf-8')) % len(_SPECIALTY_CSS_FALLBACK)],
     )
+
+
+@login_required
+def protected_media(request, path):
+    """Serve MEDIA_ROOT files behind login (the dev-only `static()` helper
+    does not work in production)."""
+    root = Path(settings.MEDIA_ROOT).resolve()
+    target = (root / path).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError:
+        raise Http404
+    if not target.exists() or not target.is_file():
+        raise Http404
+    return serve(request, path, document_root=str(root))
 
 
 def home(request):
@@ -710,13 +727,16 @@ def appointment_book(request):
                 conflict_msgs = []
                 for c in schedule_conflicts:
                     conflict_msgs.append(f"{c.get_day_of_week_display()} {c.start_time.strftime('%H:%M')}-{c.end_time.strftime('%H:%M')}: {c.title} ({c.get_category_display()})")
-                messages.warning(request, '⚠️ Schedule Conflict! You have: ' + '; '.join(conflict_msgs) + ' at this time. You can still book, but consider rescheduling.')
-            
+                if not request.POST.get('confirm_conflict') == '1':
+                    messages.error(request, '🚫 Schedule Conflict! You are busy at this time: ' + '; '.join(conflict_msgs) + '. Confirm the booking below to book anyway, or choose another time.')
+                    return redirect(f"{request.path}?doctor_id={doctor_id}&day={day}&month={month}&year={year}&hour={hour}")
+                messages.warning(request, '⚠️ Appointment booked despite your schedule conflict at: ' + '; '.join(conflict_msgs))
+
             appointment = Appointment(
                 doctor=doctor,
                 patient=patient,
-                patient_name=patient.full_name,
-                patient_phone=patient.phone,
+                patient_name=patient.user.username,
+                patient_phone=patient.phone or '',
                 reason=reason,
                 day=day,
                 month=month,
@@ -726,6 +746,14 @@ def appointment_book(request):
             appointment.save()
             messages.success(request, 'Appointment booked successfully!')
             return redirect('patient_appointments')
+
+    # Weekend (Sat/Sun) is the clinic's closed period
+    weekend_days = [entry['day'] for entry in calendar_weekdays if not entry['is_weekday']]
+
+    try:
+        selected_hour_ctx = int(request.GET.get('hour'))
+    except (TypeError, ValueError):
+        selected_hour_ctx = None
 
     return render(request, 'appointments/book_appointment.html', {
         'patient': patient,
@@ -742,6 +770,8 @@ def appointment_book(request):
         'month_name': month_name,
         'month_days': month_days,
         'calendar_weekdays': calendar_weekdays,
+        'weekend_days': weekend_days,
+        'selected_hour': selected_hour_ctx,
         'hours': range(8, 18),
         'insurance_choices': INSURANCE_CHOICES,
         'insurance_filter': insurance_filter,
@@ -1547,7 +1577,7 @@ def doctor_patient_visit(request, appointment_id):
             patient.allergies = allerg
             patient.disease_history = disease
             patient.save()
-            messages.success(request, f'Visit with {patient.full_name} marked as completed.')
+            messages.success(request, f'Visit with {patient.user.username} marked as completed.')
             return redirect('doctor_appointments')
 
         elif action == 'undo_visit':
@@ -1559,7 +1589,7 @@ def doctor_patient_visit(request, appointment_id):
         return redirect('doctor_patient_visit', appointment_id=appointment_id)
 
     records = visit.medical_records.all()
-    prescriptions = visit.prescriptions.all()
+    prescriptions = visit.prescriptions.filter(created_at__date=timezone.localdate())
 
     return render(request, 'appointments/doctor_patient_visit.html', {
         'doctor': doctor,

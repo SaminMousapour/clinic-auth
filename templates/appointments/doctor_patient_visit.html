@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Patient Visit - {{ patient.full_name }}{% endblock %}
+{% block title %}Patient Visit - {{ patient.user.username }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-page">
@@ -37,9 +37,9 @@
                 Back
             </a>
             <div class="visit-patient-info">
-                <div class="visit-avatar">{{ patient.full_name.0 }}</div>
+                <div class="visit-avatar">{{ patient.user.username.0 }}</div>
                 <div>
-                    <h1 class="visit-name">{{ patient.full_name }}</h1>
+                    <h1 class="visit-name">{{ patient.user.username }}</h1>
                     <div class="visit-meta">
                         {{ appointment.year }}/{{ appointment.month }}/{{ appointment.day }} &middot; {{ appointment.hour }}:{{ appointment.minute }} &middot; {{ appointment.reason }}
                     </div>
@@ -117,6 +117,10 @@
                             <div class="visit-field" style="margin-top:12px;">
                                 <label>Disease History</label>
                                 <textarea name="disease_history" class="visit-textarea" rows="3" placeholder="Past diseases and conditions...">{{ visit.disease_history }}</textarea>
+                            </div>
+                            <div class="visit-field" style="margin-top:12px;">
+                                <label>Description / Notes</label>
+                                <textarea name="notes" class="visit-textarea" rows="3" placeholder="Doctor's description and notes for this visit...">{{ visit.notes }}</textarea>
                             </div>
                             <button type="submit" class="btn btn-primary visit-save-btn">Save Info</button>
                         </form>

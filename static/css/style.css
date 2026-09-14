@@ -4515,6 +4515,19 @@ body {
 }
 .cal-day.cal-today::after { background: #f59e0b; box-shadow: 0 0 0 2px white; }
 
+/* Weekend (clinic closed) */
+.cal-day.cal-weekend {
+    background: #f8fafc;
+    border-color: #eef2f7;
+    color: #cbd5e1;
+    cursor: not-allowed;
+}
+.cal-day.cal-weekend .cal-day-num { color: #cbd5e1; }
+.cal-day.cal-weekend::after { background: #e2e8f0; }
+.cal-day.cal-weekend:hover { background: #f8fafc; transform: none; }
+.cal-weekend-header { color: #cbd5e1; }
+.cal-dot-weekend { background: #e2e8f0; }
+
 /* Off-day X mark - prominent visual indicator */
 .cal-day.cal-off,
 .cal-day.cal-both {

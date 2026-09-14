@@ -41,7 +41,7 @@
                     <span class="notif-badge">{{ reminder_count }}</span>
                 </button>
                 {% endif %}
-                <span class="dash-user">{{ user.patient_profile.first_name }}</span>
+                <span class="dash-user">{{ user.username }}</span>
                 <a href="{% url 'logout' %}" class="btn btn-sm btn-ghost">Logout</a>
             </div>
         </div>
@@ -51,7 +51,7 @@
         <div class="dash-welcome">
             <div class="dash-welcome-text">
                 <span class="dash-greeting" id="greeting">Good morning</span>
-                <h1>{{ user.patient_profile.first_name }} {{ user.patient_profile.last_name }}</h1>
+                <h1>{{ user.username }}</h1>
                 <p>What would you like to do today?</p>
             </div>
             <div class="dash-welcome-art">

@@ -138,7 +138,6 @@
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>Name</th>
                     <th>Username</th>
                     <th>Role</th>
                     <th>Insurance Info</th>
@@ -148,15 +147,6 @@
             <tbody>
                 {% for user in regular_users %}
                 <tr>
-                    <td class="truncated" title="{% if user.role == 'patient' and user.patient_profile %}{{ user.patient_profile.full_name }}{% elif user.role == 'doctor' and user.doctor_profile %}Dr. {{ user.doctor_profile.name }}{% endif %}">
-                        {% if user.role == 'patient' and user.patient_profile %}
-                            {{ user.patient_profile.full_name }}
-                        {% elif user.role == 'doctor' and user.doctor_profile %}
-                            Dr. {{ user.doctor_profile.name }}
-                        {% else %}
-                            &mdash;
-                        {% endif %}
-                    </td>
                     <td class="truncated" title="{{ user.username }}">{{ user.username }}</td>
                     <td><span class="badge role-{{ user.role }}">{{ user.role }}</span></td>
                     <td class="truncated" style="font-size:0.82rem; max-width:260px;" title="{% if user.role == 'patient' and user.patient_profile %}{{ user.patient_profile.get_insurance_display_name }}{% elif user.role == 'doctor' and user.doctor_profile %}{{ user.doctor_profile.get_accepted_insurance_display }}{% endif %}">
