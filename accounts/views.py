@@ -677,8 +677,6 @@ def appointment_book(request):
                     appt_end = selected_hour + 1  # assume 1 hour appointment
                     if not (appt_end <= item_start or appt_start >= item_end):
                         schedule_conflicts.append(item)
-            else:
-                schedule_conflicts = list(day_items)
         except (ValueError, TypeError):
             pass
 
